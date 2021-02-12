@@ -7,8 +7,7 @@ using Interpolations
 include("functions.jl")
 
 #Parameters set by the user
-#wl = 750
-φ = 90 #for k_x
+φ = 80 #for k_x
 θ = 10 #for k_y
 #ϵ_m = (0.06 + 4.152im)^2
 NG = 10
@@ -74,7 +73,7 @@ for (n, wl) in enumerate(wl_v)
         #Eigenvalue filtering, only works for Φ, Θ = 0 yet
         if real(λ_val) <= 0
             continue
-        elseif abs(1- (λ_val^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
+        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
             continue
         end
         ks[n, nλ] = λs[i]
