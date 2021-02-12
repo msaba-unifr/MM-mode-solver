@@ -7,13 +7,12 @@ using Interpolations
 include("functions.jl")
 
 #Parameters set by the user
-wl = 750
+#wl = 750
 φ = 90 #for k_x
 θ = 10 #for k_y
 #ϵ_m = (0.06 + 4.152im)^2
 NG = 10
 ϵ_bg = 1 + 0im
-epsilon_m_file = "MaterialModels/Ag_JC_nk.txt"
 
 # IF Ω₂ = {r : |r| < R, r ∈ ℝ³, R ∈ ℝ} (i.e. sphere)
 R = 10.0
@@ -39,14 +38,14 @@ IP_2 = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*R),dims=1).^2
 
 #Preallocating for result arrays
 nmode = 2
-wl_v = 750.0 : -Δλ : 700
+wl_v = 750.0 : -Δλ : 340
 ks = zeros(ComplexF64, (size(wl_v,1),nmode))
 cs = zeros(ComplexF64, (3,size(wl_v,1),nmode))
 ksols = zeros(ComplexF64, (size(wl_v,1),nmode))
 csols = zeros(ComplexF64, (3,size(wl_v,1),nmode))
 
 #Interpolating (n,k) data from txt file
-eps_data = readdlm(epsilon_m_file, '\t', Float64, '\n')
+eps_data = readdlm("Ag_JC_nk.txt", '\t', Float64, '\n')
 itp1 = LinearInterpolation(eps_data[:,1], eps_data[:,2])
 itp2 = LinearInterpolation(eps_data[:,1], eps_data[:,3])
 eps_ms = (itp1.(wl_v ./ 1000) + itp2.(wl_v ./ 1000) * 1im).^2
@@ -54,16 +53,19 @@ eps_ms = (itp1.(wl_v ./ 1000) + itp2.(wl_v ./ 1000) * 1im).^2
 #Loop for calculating all initial guesses in wl_v
 for (n, wl) in enumerate(wl_v)
     ϵ_m = eps_ms[n]
+    #debugging values
+    #wl = 750
+    #ϵ_m = -26.98634762786314+0.3238006183429164im
+
     global p = Parameters(wl, φ, θ, ϵ_m, ϵ_bg)
 
     #Creating 𝓗⁻¹ for initial guess
-    k_vec = zeros(ComplexF64, (3,1))
-    𝓗inv = getHinv(Gs,k_vec)
-    𝓗Ginv = getHinv(Gs,[0;0;0])
+    o_vec = zeros(ComplexF64, (3,1))
+    𝓗inv = getHinv(Gs,o_vec)
+
     #InitialGuess
-    eigs_init = getInitGuess(IP_1,𝓗Ginv)
+    eigs_init = getInitGuess(IP_1,𝓗inv)
     global λs,vs = eigs_init.values, eigs_init.vectors
-    println(eigs_init.values)
 
     nλ = 1
     tol = 1e-3
@@ -71,10 +73,8 @@ for (n, wl) in enumerate(wl_v)
 
         #Eigenvalue filtering, only works for Φ, Θ = 0 yet
         if real(λ_val) <= 0
-            println("Skipped negative lambda")
             continue
-        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
-            println("Skipped spurious lambda")
+        elseif abs(1- (λ_val^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
             continue
         end
         ks[n, nλ] = λs[i]
