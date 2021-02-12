@@ -1,3 +1,3 @@
 # MM-mode-solver
 
-Hello world!
+What it does etc!
