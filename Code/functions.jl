@@ -14,7 +14,7 @@ end
 Parameters(lambda, azim, incl, e_m, e_bg) = Parameters(lambda,azim,incl,e_m,e_bg,
     2*pi/lambda,
     2*pi/lambda*cos(azim/180*pi) * sin(incl/180*pi),
-    2*pi/lambda*sin(incl/180*pi)*sin(azim/180*pi),
+    2*pi/lambda*sin(azim/180*pi) * sin(incl/180*pi),
     2*pi/lambda*sqrt(e_bg),
     2*pi/lambda*sqrt(e_m))
 
@@ -89,8 +89,7 @@ function getInitGuess(InnerP,H_inv)
     Mm = I - p.k_1^2 / V_2^2 * ζ * Mm
     A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
     A1 = -ζ * (p.k_x *[0.0 0 1; 0 0 0; 1 0 0] + p.k_y *[0.0 0 0; 0 0 1; 0 1 0])
-    A0 = ζ * (p.k_1^2 * I - p.k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] - p.k_y^2 *[0.0 0 0; 0 1 0; 0 0 0]- p.k_x*p.k_y *[0.0 1 0; 1 0 0; 0 0 0]) -
-        (p.k_1^2 - p.k_y^2 - p.k_x^2) * Mm
+    A0 = ζ * (p.k_1^2 * I - p.k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] - p.k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - p.k_x * p.k_y *[0.0 1 0; 1 0 0; 0 0 0]) - (p.k_1^2 - p.k_x^2 - p.k_y^2) * Mm
     QEVP_LH = [A1 A0; -I zeros((3,3))]
     QEVP_RH = -[A2 zeros((3,3)); zeros((3,3)) I]
     return eigen(QEVP_LH,QEVP_RH)
