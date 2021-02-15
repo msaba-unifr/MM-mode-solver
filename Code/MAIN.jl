@@ -27,6 +27,7 @@ if size(A)[1] == 2
     V_2 = pi*R^2
 end
 results_file = "Results.txt"
+mat_file = "Ag_JC_nk.txt"
 
 
 #Code starts here
@@ -38,14 +39,15 @@ IP_2 = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*R),dims=1).^2
 
 #Preallocating for result arrays
 nmode = 2
-wl_v = 750.0 : -Δλ : 340
+wl_v = 750.0 : -Δλ : 300
 ks = zeros(ComplexF64, (size(wl_v,1),nmode))
 cs = zeros(ComplexF64, (3,size(wl_v,1),nmode))
 ksols = zeros(ComplexF64, (size(wl_v,1),nmode))
 csols = zeros(ComplexF64, (3,size(wl_v,1),nmode))
 
 #Interpolating (n,k) data from txt file
-eps_data = readdlm("Ag_JC_nk.txt", '\t', Float64, '\n')
+file_loc = string(pwd(), "\\MaterialModels\\", mat_file)
+eps_data = readdlm(file_loc, '\t', Float64, '\n')
 itp1 = LinearInterpolation(eps_data[:,1], eps_data[:,2])
 itp2 = LinearInterpolation(eps_data[:,1], eps_data[:,3])
 eps_ms = (itp1.(wl_v ./ 1000) + itp2.(wl_v ./ 1000) * 1im).^2
@@ -108,8 +110,12 @@ using Plots
 f_v = 3e5 ./ collect(wl_v)
 plot([imag.(ksols), real.(ksols)], f_v)
 #plot([imag.(ks), real.(ks)], f_v)
-
+#=
 #Write Results to txt file
 open(results_file, "w") do io
            writedlm(io, hcat(f_v, ksols))
 end
+=#
+
+#Ploting field intensity
+#for c in csols
