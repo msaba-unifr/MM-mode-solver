@@ -8,8 +8,8 @@ include("functions.jl")
 
 
 #Parameters set by the user
-φ = 80 #for k_x
-θ = 10 #for k_y
+φ = 0 #for k_x
+θ = 60 #for k_y
 #ϵ_m = (0.06 + 4.152im)^2
 NG = 10
 ϵ_bg = 1 + 0im
@@ -39,7 +39,7 @@ IP_2 = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*R),dims=1).^2
 
 #Preallocating for result arrays
 nmode = 2
-wl_v = 750.0 : -Δλ : 300
+wl_v = 600.0 : -Δλ : 600
 ks = zeros(ComplexF64, (size(wl_v,1),nmode))
 cs = zeros(ComplexF64, (3,size(wl_v,1),nmode))
 ksols = zeros(ComplexF64, (size(wl_v,1),nmode))
@@ -107,8 +107,8 @@ end
 
 #Display Results as a plot ν(k) ,ksols = newton output, ks = qep output
 using Plots
-f_v = 3e5 ./ collect(wl_v)
-plot([imag.(ksols), real.(ksols)], f_v)
+#f_v = 3e5 ./ collect(wl_v)
+#plot([imag.(ksols), real.(ksols)], f_v)
 #plot([imag.(ks), real.(ks)], f_v)
 #=
 #Write Results to txt file
@@ -118,4 +118,28 @@ end
 =#
 
 #Ploting field intensity
-#for c in csols
+test_idx = 1
+test_mode = 1
+img_yrange = 200 #nm
+img_zrange = 100 #nm
+res = 0.5 #nm
+
+ys = -img_yrange/2 : res : img_yrange/2
+zs = -img_zrange/2 : res : img_zrange/2
+ksol = ksols[test_idx, test_mode]
+csol = qr(conj(getMder(ksol,0)), Val(true)).Q[:,end]
+kx = p.k_x
+ky = p.k_y
+kGs = [kx, ky, ksol] .+ Gs
+x_0 = 0.0
+
+𝓗inv = getHinv(Gs, [kx, ky, ksol])
+IP = sqrt.(IP_2)
+@einsum H_c[i,k,n,m] := IP[k,n,m] * 𝓗inv[i,j,k,n,m] * csol[j]
+H_c = H_c ./ l.V
+
+E = [norm(sum(H_c[1,:,:,:] .* exp.(-1im*kGs[1,:,:,:]*x_0)))^2 +
+    norm(sum(H_c[2,:,:,:] .* exp.(-1im*kGs[2,:,:,:]*y)))^2 +
+    norm(sum(H_c[3,:,:,:] .* exp.(-1im*kGs[3,:,:,:]*z)))^2 for
+    z in zs, y in ys]
+heatmap(real(E))
