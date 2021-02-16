@@ -8,15 +8,15 @@ include("functions.jl")
 
 
 #Parameters set by the user
-φ = 0 #for k_x
-θ = 60 #for k_y
+φ = 45 #for k_x
+θ = 45 #for k_y
 #ϵ_m = (0.06 + 4.152im)^2
 NG = 10
 ϵ_bg = 1 + 0im
 
 # IF Ω₂ = {r : |r| < R, r ∈ ℝ³, R ∈ ℝ} (i.e. sphere)
-R = 10.0
-V_2 = pi*R^2                              #Volume definition required
+Rad = 10.0
+V_2 = pi*Rad^2                              #Volume definition required
 a = 30.0                                    #lattice constant
 Δλ = 1                                        #wavelength spacing
 #A = [a 0 0; 0 a 0; 0 0 a]                     #cubic lattice 3D
@@ -24,7 +24,7 @@ a = 30.0                                    #lattice constant
 #A = [a a/2; 0 sqrt(3)*a/2]                    #hexagonal lattice
 A = [a/2 a; sqrt(3)*a/2 0]                    #hexagonal lattice
 if size(A)[1] == 2
-    V_2 = pi*R^2
+    V_2 = pi*Rad^2
 end
 results_file = "Results.txt"
 mat_file = "Ag_JC_nk.txt"
@@ -34,8 +34,8 @@ mat_file = "Ag_JC_nk.txt"
 l = Lattice2D(NG,A,V_2)
 #Creating G_space
 Gs = getGspace()
-IP_1 = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*R,exclude_DC=true),dims=1).^2
-IP_2 = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*R),dims=1).^2
+IP_1 = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,exclude_DC=true),dims=1).^2
+IP_2 = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad),dims=1).^2
 
 #Preallocating for result arrays
 nmode = 2
@@ -63,17 +63,16 @@ for (n, wl) in enumerate(wl_v)
 
     #Creating 𝓗⁻¹ for initial guess
     o_vec = zeros(ComplexF64, (3,1))
-    𝓗inv = getHinv(Gs,o_vec)
+    𝓗invs = getHinv(Gs,o_vec)
 
     #InitialGuess
-    eigs_init = getInitGuess(IP_1,𝓗inv)
+    eigs_init = getInitGuess(IP_1,𝓗invs)
     global λs,vs = eigs_init.values, eigs_init.vectors
 
     nλ = 1
     tol = 1e-3
     for (i, λ_val) in enumerate(λs)
 
-        #Eigenvalue filtering, only works for Φ, Θ = 0 yet
         if real(λ_val) <= 0
             continue
         elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
@@ -97,7 +96,7 @@ for mode = 1:2
     for (n, wl) in enumerate(wl_v)
 
         ϵ_m = eps_ms[n]
-        global p = Parameters(wl, θ, φ, ϵ_m, ϵ_bg)
+        global p = Parameters(wl, φ, θ, ϵ_m, ϵ_bg)
         global IP = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP_2
         k_sol = scalarNewton(ks[n, mode])
         ksols[n, mode] = k_sol
@@ -119,27 +118,75 @@ end
 
 #Ploting field intensity
 test_idx = 1
-test_mode = 1
-img_yrange = 200 #nm
-img_zrange = 100 #nm
+test_mode = 2
+img_yrange = 2*a #nm
+img_zrange = sqrt(3)*a #nm
 res = 0.5 #nm
 
 ys = -img_yrange/2 : res : img_yrange/2
 zs = -img_zrange/2 : res : img_zrange/2
-ksol = ksols[test_idx, test_mode]
-csol = qr(conj(getMder(ksol,0)), Val(true)).Q[:,end]
-kx = p.k_x
-ky = p.k_y
-kGs = [kx, ky, ksol] .+ Gs
-x_0 = 0.0
 
-𝓗inv = getHinv(Gs, [kx, ky, ksol])
-IP = sqrt.(IP_2)
-@einsum H_c[i,k,n,m] := IP[k,n,m] * 𝓗inv[i,j,k,n,m] * csol[j]
+ksol = ksols[test_idx, test_mode]
+Wcotr = transpose(conj(getMder(ksol,0)))
+Q,R,P = qr(Wcotr, Val(true))
+eigvec = Q[:,end]
+kpGs = [p.k_x, p.k_y, ksol] .+ Gs
+HikG = getHinv(Gs, [p.k_x, p.k_y, ksol])
+
+@einsum absGs2[k,n,m] := Gs[i,k,n,m]*Gs[i,k,n,m]
+absGs = sqrt.(absGs2)
+absGs[14,14,1]
+Bess = zeros(size(absGs))
+for k in 1:2*NG+1
+    for n in 1:2*NG+1
+        for m in 1:1
+            Bess[k,n,1]=InnerProd(Rad * absGs[k,n,1])
+        end
+    end
+end
+
+# Bess = sqrt.(IP_2)
+@einsum H_c[i,k,n,m] := Bess[k,n,m] * HikG[i,j,k,n,m] * eigvec[j]
 H_c = H_c ./ l.V
 
-E = [norm(sum(H_c[1,:,:,:] .* exp.(-1im*kGs[1,:,:,:]*x_0)))^2 +
-    norm(sum(H_c[2,:,:,:] .* exp.(-1im*kGs[2,:,:,:]*y)))^2 +
-    norm(sum(H_c[3,:,:,:] .* exp.(-1im*kGs[3,:,:,:]*z)))^2 for
-    z in zs, y in ys]
-heatmap(real(E))
+# @einsum H_c[i,k,n,m] := HikG[i,j,k,n,m] * eigvec[j]
+# @einsum ℰG[i,k,n,m] := Bess[k,n,m] * H_c[i,k,n,m]
+# ℰG = ℰG ./ l.V
+# rvec = [transpose([0 y z]) for z in zs, y in ys]
+# rvec = [r[i] for r in rvec, i in 1:3]
+# @einsum kGr[k,n,m,p,q] := kpGs[i,k,n,m] * rvec[p,q,i]
+# efac = exp.(1im.*kGr)
+# @einsum smmnd[i,k,n,m,p,q] := H_c[i,k,n,m] * efac[k,n,m,p,q]
+# @einsum EG[i,k,n,m,p,q] := Bess[k,n,m] * smmnd[i,k,n,m,p,q]
+#
+# @einsum E[i,p,q] := EG[i,k,n,m,p,q]
+#
+# E_x = E[1,:,:]
+# E_y = E[2,:,:]
+# E_z = E[3,:,:]
+
+E_x = [sum(H_c[1,:,:,:] .*
+    exp.(1im*kpGs[2,:,:,:]*y) .* exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
+E_y = [sum(H_c[2,:,:,:] .*
+    exp.(1im*kpGs[2,:,:,:]*y) .* exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
+E_z = [sum(H_c[3,:,:,:] .*
+    exp.(1im*kpGs[2,:,:,:]*y) .* exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
+
+# E_x = [sum(ℰG[1,:,:,:] .*
+#     exp.(1im*kGs[2,:,:,:]*y) .* exp.(1im*kGs[3,:,:,:]*(z)) ) for z in zs, y in ys]
+# E_y = [sum(ℰG[2,:,:,:] .*
+#     exp.(1im*kGs[2,:,:,:]*y) .* exp.(1im*kGs[3,:,:,:]*(z)) ) for z in zs, y in ys]
+# E_z = [sum(ℰG[3,:,:,:] .*
+#     exp.(1im*kGs[2,:,:,:]*y) .* exp.(1im*kGs[3,:,:,:]*(z)) ) for z in zs, y in ys]
+
+Eint =  abs.(E_x).^2 .+ abs.(E_y).^2 .+ abs.(E_z).^2
+#E = [norm(sum(H_c[1,:,:,:] .*
+#    exp.(1im*kGs[2,:,:,:]*y) .* exp.(1im*kGs[3,:,:,:]*(z)) ))^2 +
+#    norm(sum(H_c[2,:,:,:] .*
+#    exp.(1im*kGs[2,:,:,:]*y) .* exp.(1im*kGs[3,:,:,:]*(z)) ))^2 +
+#    norm(sum(H_c[3,:,:,:] .*
+#    exp.(1im*kGs[2,:,:,:]*y) .* exp.(1im*kGs[3,:,:,:]*(z))))^2 for
+#    z in zs, y in ys]
+
+Eint = Eint/maximum(Eint)
+heatmap(Eint)
