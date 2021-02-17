@@ -101,7 +101,7 @@ function getMder(λ_value, der, eps = 1.0e-8)
 
     if der == 0
         H_inv = getHinv(Gs, k_v)
-        @einsum GH_sum[i,j,k,n,m] := IP[k,n,m] * H_inv[i,j,k,n,m]
+        @einsum GH_sum[i,j,k,n,m] := IP²_factor[k,n,m] * H_inv[i,j,k,n,m]
         GH_sum = dropdims(sum(GH_sum, dims=(3,4,5)),dims=(3,4,5))
         return I - GH_sum
     elseif der == 1 #Recursive implementation of numeric derivative
@@ -125,4 +125,38 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
         nn == maxiter ? throw("No conv in Newton") : nothing
     end
     return knew
+end
+
+function getE_Field(wl_input, nmode, res)
+
+    #find closest computed wl index with respect to input wl
+    n = findmin(abs.(wl_v .- wl_input))[2]
+    println("Closeset wavelength computed: ", wl_v[n])
+    #update dependencies with respect to desired wl
+    ϵ_m = eps_ms[n]
+    global p = Parameters(wl_v[n], φ, θ, ϵ_m, ϵ_bg)
+    #Extract eigen-values/vectors from Newton step
+    k_sol = ksols[n, nmode]
+    c_sol = csols[:, n, nmode]
+    #image range dependent on lattice parameter
+    img_yrange = 2*a #nm
+    img_zrange = sqrt(3)*a #nm
+    ys = -img_yrange/2 : res : img_yrange/2
+    zs = -img_zrange/2 : res : img_zrange/2
+    #Precomputing variables
+    kpGs = [p.k_x, p.k_y, k_sol] .+ Gs
+    HikG = getHinv(Gs, [p.k_x, p.k_y, k_sol])
+    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
+    #Calculation according to manuscript
+    @einsum H_c[i,k,n,m] := IP[k,n,m] * HikG[i,j,k,n,m] * c_sol[j]
+    H_c = H_c ./ l.V
+    #Field components for every z-y position in image range
+    E_x = [sum(H_c[1,:,:,:] .*
+        exp.(1im*kpGs[2,:,:,:]*y) .* exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
+    E_y = [sum(H_c[2,:,:,:] .*
+        exp.(1im*kpGs[2,:,:,:]*y) .* exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
+    E_z = [sum(H_c[3,:,:,:] .*
+        exp.(1im*kpGs[2,:,:,:]*y) .* exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
+
+    return E_x, E_y, E_z
 end
