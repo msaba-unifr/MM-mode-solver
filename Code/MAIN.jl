@@ -111,7 +111,7 @@ end
 # end
 
 
-E_x, E_y, E_z = getE_Field(600, 2, 0.5)
+E_x, E_y, E_z = getE_Field(400, 2, 0.5)
 
 Eint =  abs.(E_x).^2 .+ abs.(E_y).^2 .+ abs.(E_z).^2
 Eint = Eint/maximum(Eint)
