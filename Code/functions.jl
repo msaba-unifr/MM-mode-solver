@@ -131,7 +131,9 @@ function getE_Field(wl_input, nmode, res)
 
     #find closest computed wl index with respect to input wl
     n = findmin(abs.(wl_v .- wl_input))[2]
-    println("Closeset wavelength computed: ", wl_v[n])
+    if wl_input != wl_v[n]
+        println("Using closeset computed wavelength: ", wl_v[n])
+    end
     #update dependencies with respect to desired wl
     ϵ_m = eps_ms[n]
     global p = Parameters(wl_v[n], φ, θ, ϵ_m, ϵ_bg)
