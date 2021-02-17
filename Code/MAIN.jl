@@ -10,7 +10,6 @@ include("functions.jl")
 #Parameters set by the user
 φ = 45 #for k_x
 θ = 45 #for k_y
-#ϵ_m = (0.06 + 4.152im)^2
 NG = 10
 ϵ_bg = 1 + 0im
 
@@ -19,9 +18,6 @@ Rad = 10.0
 V_2 = pi*Rad^2                              #Volume definition required
 a = 30.0                                    #lattice constant
 Δλ = 1                                        #wavelength spacing
-#A = [a 0 0; 0 a 0; 0 0 a]                     #cubic lattice 3D
-#A = [a 0; 0 2*a]                               #cubic lattice 2D
-#A = [a a/2; 0 sqrt(3)*a/2]                    #hexagonal lattice
 A = [a/2 a; sqrt(3)*a/2 0]                    #hexagonal lattice
 if size(A)[1] == 2
     V_2 = pi*Rad^2
@@ -35,8 +31,9 @@ l = Lattice2D(NG,A,V_2)
 #Creating G_space
 Gs = getGspace()
 IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,exclude_DC=true),dims=1).^2
-IP² = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad),dims=1).^2
 IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad),dims=1)
+IP² = IP.^2
+
 #Preallocating for result arrays
 nmode = 2
 wl_v = 700.0 : -Δλ : 350
