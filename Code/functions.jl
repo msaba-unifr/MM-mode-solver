@@ -22,6 +22,7 @@ struct Lattice2D
     NG
     A
     V_2
+    R
     B
     V
 end
@@ -30,18 +31,19 @@ struct Lattice3D
     NG
     A
     V_2
+    R
     B
     V
 end
 
 
-Lattice3D(NG,A,V_2) = Lattice3D(NG, A, V_2, 2*pi*inv(A)', abs(det(A)))
+Lattice3D(NG,A,V_2,R) = Lattice3D(NG, A, V_2, R, 2*pi*inv(A)', abs(det(A)))
 
 #Lattice2D(NG,A,V_2) = Lattice2D(NG, A, V_2,
 #2*pi*[0 0 0; inv(A)[1,1] inv(A)[2,1] 0; inv(A)[1,2] inv(A)[2,2] 0],
 #det(A))
 
-Lattice2D(NG,A,V_2) = Lattice2D(NG, A, V_2,
+Lattice2D(NG,A,V_2,R) = Lattice2D(NG, A, V_2, R,
 2*pi*[0 0 0; inv(A)[1,1] inv(A)[2,1] 0; inv(A)[1,2] inv(A)[2,2] 0],
 abs(det(A)))
 
@@ -86,7 +88,7 @@ function getInitGuess(InnerP,H_inv)
     #InitialGuess
     ζ = (p.k_1^2-p.k_2^2) * l.V_2 / l.V / p.k_1^2
     @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
-    Mm = I - p.k_1^2 / V_2^2 * ζ * Mm
+    Mm = I - p.k_1^2 / l.V_2^2 * ζ * Mm
     A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
     A1 = -ζ * (p.k_x *[0.0 0 1; 0 0 0; 1 0 0] + p.k_y *[0.0 0 0; 0 0 1; 0 1 0])
     A0 = ζ * (p.k_1^2 * I - p.k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] - p.k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - p.k_x * p.k_y *[0.0 1 0; 1 0 0; 0 0 0]) - (p.k_1^2 - p.k_x^2 - p.k_y^2) * Mm
@@ -127,19 +129,8 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
     return knew
 end
 
-function getE_Field(wl_input, nmode, res)
+function getE_Field(k_sol, c_sol, res)
 
-    #find closest computed wl index with respect to input wl
-    n = findmin(abs.(wl_v .- wl_input))[2]
-    if wl_input != wl_v[n]
-        println("Using closeset computed wavelength: ", wl_v[n])
-    end
-    #update dependencies with respect to desired wl
-    ϵ_m = eps_ms[n]
-    global p = Parameters(wl_v[n], φ, θ, ϵ_m, ϵ_bg)
-    #Extract eigen-values/vectors from Newton step
-    k_sol = ksols[n, nmode]
-    c_sol = csols[:, n, nmode]
     #image range dependent on lattice parameter
     img_yrange = 2*a #nm
     img_zrange = sqrt(3)*a #nm
