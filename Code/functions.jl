@@ -72,22 +72,22 @@ function getHinv(Gs,k_v)
     #Creating 𝓗⁻¹#
     # Adding vectors
     k_v = reshape(k_v, (3,1))
-    @einsum kG[i,k,n,m] := k_v[i] + Gs[i,k,n,m]
+    @tensor kG[i,k,n,m] := k_v[i] + Gs[i,k,n,m]
     #Creating square of elements
-    @einsum kG_2[k,n,m] := kG[i,k,n,m] * kG[i,k,n,m]
+    @tensor kG_2[k,n,m] := kG[i,k,n,m] * kG[i,k,n,m]
     #Creating TensorProduct
-    @einsum kG_TP[i,j,k,n,m] := kG[i,k,n,m] * kG[j,k,n,m]
+    @tensor kG_TP[i,j,k,n,m] := kG[i,k,n,m] * kG[j,k,n,m]
     #Computing inverse
     H_factor = 1 ./ (p.k_1^2 .- kG_2)
     id_TP = Matrix{ComplexF64}(I,size(kG_TP,1),size(kG_TP,2)) .- kG_TP / p.k_1^2
-    @einsum H_inv[i,j,k,n,m] := H_factor[k,n,m] * id_TP[i,j,k,n,m]
+    @tensor H_inv[i,j,k,n,m] := H_factor[k,n,m] * id_TP[i,j,k,n,m]
     return H_inv
 end
 
 function getInitGuess(InnerP,H_inv)
     #InitialGuess
     ζ = (p.k_1^2-p.k_2^2) * l.V_2 / l.V / p.k_1^2
-    @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
+    @tensor Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
     Mm = I - p.k_1^2 / l.V_2^2 * ζ * Mm
     A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
     A1 = -ζ * (p.k_x *[0.0 0 1; 0 0 0; 1 0 0] + p.k_y *[0.0 0 0; 0 0 1; 0 1 0])
@@ -103,7 +103,7 @@ function getMder(λ_value, der, eps = 1.0e-8)
 
     if der == 0
         H_inv = getHinv(Gs, k_v)
-        @einsum GH_sum[i,j,k,n,m] := IP²_factor[k,n,m] * H_inv[i,j,k,n,m]
+        @tensor GH_sum[i,j,k,n,m] := IP²_factor[k,n,m] * H_inv[i,j,k,n,m]
         GH_sum = dropdims(sum(GH_sum, dims=(3,4,5)),dims=(3,4,5))
         return I - GH_sum
     elseif der == 1 #Recursive implementation of numeric derivative

@@ -75,7 +75,7 @@ function getE_Field(k_sol, c_sol, img_yrange, img_zrange, res)
     HikG = getHinv(Gs, [p.k_x, p.k_y, k_sol])
     absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
     #Calculation according to manuscript
-    @einsum H_c[i,k,n,m] := IP[k,n,m] * HikG[i,j,k,n,m] * c_sol[j]
+    @tensor H_c[i,k,n,m] := IP[k,n,m] * HikG[i,j,k,n,m] * c_sol[j]
     H_c = H_c ./ l.V
     #Field components for every z-y position in image range
     E = [sum(H_c[idx,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
