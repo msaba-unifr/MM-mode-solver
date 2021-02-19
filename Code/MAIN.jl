@@ -4,7 +4,6 @@ using SpecialFunctions
 using NonlinearEigenproblems
 using DelimitedFiles
 using Interpolations
-include("functions.jl")
 include("methods.jl")
 
 #Parameters set by the user
@@ -25,12 +24,11 @@ V_2 = pi*Rad^2                              #Volume definition required
 Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
     ϵ_m = mat_file, A = A, Rad = Rad, V_2 = V_2)
 
-update_dependencies!(wl = 600, ϵ_m = mat_file)
-update_dependencies!(NG = 5)
+update_dependencies!(NG = 20)
 ksols,csols = getMode()
-E_x, E_y, E_z = getE_Field(ksols[2], csols[:,2], 0.5)
+E = getE_Field(ksols[2], csols[:,2], 2*a, sqrt(3)*a, 0.25)
 
-Eint =  abs.(E_x).^2 .+ abs.(E_y).^2 .+ abs.(E_z).^2
-Eint = Eint/maximum(Eint)
+E_I =  dropdims(sum(abs.(E).^2,dims=1),dims=1)
+E_I = E_I/maximum(E_I)
 using Plots
-heatmap(Eint)
+heatmap(E_I)

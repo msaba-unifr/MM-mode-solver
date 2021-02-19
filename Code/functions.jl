@@ -128,28 +128,3 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
     end
     return knew
 end
-
-function getE_Field(k_sol, c_sol, res)
-
-    #image range dependent on lattice parameter
-    img_yrange = 2*a #nm
-    img_zrange = sqrt(3)*a #nm
-    ys = -img_yrange/2 : res : img_yrange/2
-    zs = -img_zrange/2 : res : img_zrange/2
-    #Precomputing variables
-    kpGs = [p.k_x, p.k_y, k_sol] .+ Gs
-    HikG = getHinv(Gs, [p.k_x, p.k_y, k_sol])
-    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
-    #Calculation according to manuscript
-    @einsum H_c[i,k,n,m] := IP[k,n,m] * HikG[i,j,k,n,m] * c_sol[j]
-    H_c = H_c ./ l.V
-    #Field components for every z-y position in image range
-    E_x = [sum(H_c[1,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
-        exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
-    E_y = [sum(H_c[2,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
-        exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
-    E_z = [sum(H_c[3,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
-        exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
-
-    return E_x, E_y, E_z
-end
