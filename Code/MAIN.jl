@@ -34,3 +34,9 @@ E_I =  dropdims(sum(abs.(E).^2,dims=1),dims=1)
 E_I = E_I/maximum(E_I)
 # using Plots
 # heatmap(E_I)
+
+file_path = string(pwd(), "\\Data\\test.dat")
+
+open(file_path, "w") do io
+    write(io, "Hello world!")
+end
