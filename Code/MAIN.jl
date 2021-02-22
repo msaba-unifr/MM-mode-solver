@@ -38,7 +38,7 @@ E_I = E_I/maximum(E_I)
 # using Plots
 # heatmap(E_I)
 
-heatmp = [ [y-1,z-1,E_I[y,z]] for y in 1:size(E_I)[1] for z in 1:size(E_I)[2] ]
+heatmp = [ [(y-1)*res-yrange/2,(z-1)*res-zrange/2,E_I[z,y]] for y in 1:size(E_I)[2] for z in 1:size(E_I)[1] ]
 
 file_path = string(pwd(), "\\Data\\test.dat")
 
