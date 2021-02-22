@@ -28,8 +28,7 @@ end
 function getMode()
 
     o_vec = zeros(ComplexF64, (3,1))
-    𝓗invs = getHinv(Gs,o_vec)
-
+    𝓗invs = getHinv(Gs,o_vec, p.k_1)
     #InitialGuess
     eigs_init = getInitGuess(IP²_noDC,𝓗invs)
     λs,vs = eigs_init.values, eigs_init.vectors
@@ -59,7 +58,7 @@ function getMode()
 
         global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
         k_sol = scalarNewton(ks[mode])
-        c_sol = qr(conj(getMder(k_sol,0)), Val(true)).Q[:,end]
+        c_sol = qr(conj(getM(k_sol, IP²_factor)), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end
@@ -72,14 +71,18 @@ function getE_Field(k_sol, c_sol, img_yrange, img_zrange, res)
     zs = -img_zrange/2 : res : img_zrange/2
     #Precomputing variables
     kpGs = [p.k_x, p.k_y, k_sol] .+ Gs
-    HikG = getHinv(Gs, [p.k_x, p.k_y, k_sol])
+    HikG = getHinv(Gs, [p.k_x, p.k_y, k_sol], p.k_1)
     absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
     #Calculation according to manuscript
-    @einsum H_c[i,k,n,m] := IP[k,n,m] * HikG[i,j,k,n,m] * c_sol[j]
+    IPs = IP
+    @einsum H_c[i,k,n,m] := IPs[k,n,m] * HikG[i,j,k,n,m] * c_sol[j]
     H_c = H_c ./ l.V
     #Field components for every z-y position in image range
-    E = [sum(H_c[idx,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
-        exp.(1im*kpGs[3,:,:,:]*-z )) for idx in 1:3, z in zs, y in ys]
+    kpGs_y = kpGs[2,:,:,:]
+    kpGs_z = kpGs[3,:,:,:]
+    H_c = (H_c[1,:,:,:], H_c[2,:,:,:], H_c[3,:,:,:])
+    E = [getFieldValue(H_c[idx], kpGs_y, kpGs_z, y, z)
+        for idx in 1:3, z in zs, y in ys]
     return E
 end
 
