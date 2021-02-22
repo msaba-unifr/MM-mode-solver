@@ -1,14 +1,14 @@
 struct Parameters
-    lambda
-    azim
-    incl
-    e_m
-    e_bg
-    k_0
-    k_x
-    k_y
-    k_1
-    k_2
+    lambda::AbstractFloat
+    azim::AbstractFloat
+    incl::AbstractFloat
+    e_m::Complex
+    e_bg::AbstractFloat
+    k_0::AbstractFloat
+    k_x::AbstractFloat
+    k_y::AbstractFloat
+    k_1::Complex{Float64}
+    k_2::Complex
 end
 
 Parameters(lambda, azim, incl, e_m, e_bg) = Parameters(lambda,azim,incl,e_m,e_bg,
@@ -68,26 +68,26 @@ function getGspace()
     return Gs
 end
 
-function getHinv(Gs,k_v)
+function getHinv(Gs, k_v, k_1)::Array{Complex{Float64},5}
     #Creating 𝓗⁻¹#
     # Adding vectors
     k_v = reshape(k_v, (3,1))
-    @tensor kG[i,k,n,m] := k_v[i] + Gs[i,k,n,m]
+    @einsum kG[i,k,n,m] := k_v[i] + Gs[i,k,n,m]
     #Creating square of elements
-    @tensor kG_2[k,n,m] := kG[i,k,n,m] * kG[i,k,n,m]
+    @einsum kG_2[k,n,m] := kG[i,k,n,m] * kG[i,k,n,m]
     #Creating TensorProduct
-    @tensor kG_TP[i,j,k,n,m] := kG[i,k,n,m] * kG[j,k,n,m]
+    @einsum outM[i,j,k,n,m] := kG[i,k,n,m] * kG[j,k,n,m]
     #Computing inverse
-    H_factor = 1 ./ (p.k_1^2 .- kG_2)
-    id_TP = Matrix{ComplexF64}(I,size(kG_TP,1),size(kG_TP,2)) .- kG_TP / p.k_1^2
-    @tensor H_inv[i,j,k,n,m] := H_factor[k,n,m] * id_TP[i,j,k,n,m]
-    return H_inv
+    H_factor = 1 ./ (k_1^2 .- kG_2)
+    outM = Matrix{ComplexF64}(I,3,3) .- outM / k_1^2
+    @einsum outM[i,j,k,n,m] = H_factor[k,n,m] * outM[i,j,k,n,m]
+    return outM
 end
 
-function getInitGuess(InnerP,H_inv)
+function getInitGuess(InnerP, H_inv)
     #InitialGuess
     ζ = (p.k_1^2-p.k_2^2) * l.V_2 / l.V / p.k_1^2
-    @tensor Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
+    @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
     Mm = I - p.k_1^2 / l.V_2^2 * ζ * Mm
     A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
     A1 = -ζ * (p.k_x *[0.0 0 1; 0 0 0; 1 0 0] + p.k_y *[0.0 0 0; 0 0 1; 0 1 0])
@@ -97,27 +97,27 @@ function getInitGuess(InnerP,H_inv)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function getMder(λ_value, der, eps = 1.0e-8)
+function getM(λ_value, IPs, eps = 1.0e-8)::Array{Complex{Float64},2}
 
     k_v = [p.k_x ; p.k_y; λ_value]
+    H_inv = getHinv(Gs, k_v, p.k_1)
+    @einsum GH_sum[i,j,k,n,m] := IPs[k,n,m] * H_inv[i,j,k,n,m]
+    GH_sum = dropdims(sum(GH_sum, dims=(3,4,5)),dims=(3,4,5))
+    return I - GH_sum
+end
 
-    if der == 0
-        H_inv = getHinv(Gs, k_v)
-        @tensor GH_sum[i,j,k,n,m] := IP²_factor[k,n,m] * H_inv[i,j,k,n,m]
-        GH_sum = dropdims(sum(GH_sum, dims=(3,4,5)),dims=(3,4,5))
-        return I - GH_sum
-    elseif der == 1 #Recursive implementation of numeric derivative
-        return (det(getMder(λ_value+eps,der-1)) -
-            det(getMder(λ_value-eps,der-1)))/(2*eps)
-    end
+function getMder(λ_value, IPs, eps = 1.0e-8)::Complex{Float64}
+
+    return (det(getM(λ_value+eps, IPs)) -
+            det(getM(λ_value-eps, IPs)))/(2*eps)
 end
 
 function scalarNewton(init, maxiter=1000, tol2=5e-9)
 
     k = init
     for nn in 1:maxiter
-        phik = det(getMder(k,0))
-        knew = k - phik / getMder(k,1)
+        phik = det(getM(k, IP²_factor))
+        knew = k - phik / getMder(k, IP²_factor)
         delk = abs(1 - knew / k)
         if delk < tol2
             global knew = knew
@@ -127,4 +127,9 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
         nn == maxiter ? throw("No conv in Newton") : nothing
     end
     return knew
+end
+
+function getFieldValue(H, KG_slice_y, KG_slice_z, y, z)::ComplexF64
+
+    return sum(H .* exp.(1im*KG_slice_y*y) .* exp.(1im*KG_slice_z*-z ))
 end
