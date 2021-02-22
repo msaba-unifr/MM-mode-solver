@@ -28,15 +28,20 @@ update_dependencies!(NG = 10)
 
 ksols,csols = getMode()
 
-E = getE_Field(ksols[2], csols[:,2], 2*a, sqrt(3)*a, 0.25)
+res = 0.5
+yrange = 3*a
+zrange = 1.5*sqrt(3)*a
+E = getE_Field(ksols[2], csols[:,2], 3*a, 1.5*sqrt(3)*a, res)
 
 E_I =  dropdims(sum(abs.(E).^2,dims=1),dims=1)
 E_I = E_I/maximum(E_I)
 # using Plots
 # heatmap(E_I)
 
+heatmp = [ [y-1,z-1,E_I[y,z]] for y in 1:size(E_I)[1] for z in 1:size(E_I)[2] ]
+
 file_path = string(pwd(), "\\Data\\test.dat")
 
 open(file_path, "w") do io
-    write(io, "Hello world!")
+    writedlm(io, heatmp)
 end
