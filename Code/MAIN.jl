@@ -31,7 +31,7 @@ ksols,csols = getMode()
 res = 0.5
 yrange = 3*a
 zrange = 1.5*sqrt(3)*a
-E = getE_Field(ksols[2], csols[:,2], 3*a, 1.5*sqrt(3)*a, res)
+E = getE_Field(ksols[2], csols[:,2], yrange, zrange, res)
 
 E_I =  dropdims(sum(abs.(E).^2,dims=1),dims=1)
 E_I = E_I/maximum(E_I)
