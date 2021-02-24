@@ -1,14 +1,14 @@
 struct Parameters
-    lambda
-    azim
-    incl
-    e_m
-    e_bg
-    k_0
-    k_x
-    k_y
-    k_1
-    k_2
+    lambda::AbstractFloat
+    azim::AbstractFloat
+    incl::AbstractFloat
+    e_m::Complex
+    e_bg::AbstractFloat
+    k_0::AbstractFloat
+    k_x::AbstractFloat
+    k_y::AbstractFloat
+    k_1::Complex{Float64}
+    k_2::Complex
 end
 
 Parameters(lambda, azim, incl, e_m, e_bg) = Parameters(lambda,azim,incl,e_m,e_bg,
@@ -22,6 +22,7 @@ struct Lattice2D
     NG
     A
     V_2
+    R
     B
     V
 end
@@ -30,18 +31,19 @@ struct Lattice3D
     NG
     A
     V_2
+    R
     B
     V
 end
 
 
-Lattice3D(NG,A,V_2) = Lattice3D(NG, A, V_2, 2*pi*inv(A)', abs(det(A)))
+Lattice3D(NG,A,V_2,R) = Lattice3D(NG, A, V_2, R, 2*pi*inv(A)', abs(det(A)))
 
 #Lattice2D(NG,A,V_2) = Lattice2D(NG, A, V_2,
 #2*pi*[0 0 0; inv(A)[1,1] inv(A)[2,1] 0; inv(A)[1,2] inv(A)[2,2] 0],
 #det(A))
 
-Lattice2D(NG,A,V_2) = Lattice2D(NG, A, V_2,
+Lattice2D(NG,A,V_2,R) = Lattice2D(NG, A, V_2, R,
 2*pi*[0 0 0; inv(A)[1,1] inv(A)[2,1] 0; inv(A)[1,2] inv(A)[2,2] 0],
 abs(det(A)))
 
@@ -66,7 +68,7 @@ function getGspace()
     return Gs
 end
 
-function getHinv(Gs,k_v)
+function getHinv(Gs, k_v, k_1)::Array{Complex{Float64},5}
     #Creating 𝓗⁻¹#
     # Adding vectors
     k_v = reshape(k_v, (3,1))
@@ -74,19 +76,19 @@ function getHinv(Gs,k_v)
     #Creating square of elements
     @einsum kG_2[k,n,m] := kG[i,k,n,m] * kG[i,k,n,m]
     #Creating TensorProduct
-    @einsum kG_TP[i,j,k,n,m] := kG[i,k,n,m] * kG[j,k,n,m]
+    @einsum outM[i,j,k,n,m] := kG[i,k,n,m] * kG[j,k,n,m]
     #Computing inverse
-    H_factor = 1 ./ (p.k_1^2 .- kG_2)
-    id_TP = Matrix{ComplexF64}(I,size(kG_TP,1),size(kG_TP,2)) .- kG_TP / p.k_1^2
-    @einsum H_inv[i,j,k,n,m] := H_factor[k,n,m] * id_TP[i,j,k,n,m]
-    return H_inv
+    H_factor = 1 ./ (k_1^2 .- kG_2)
+    outM = Matrix{ComplexF64}(I,3,3) .- outM / k_1^2
+    @einsum outM[i,j,k,n,m] = H_factor[k,n,m] * outM[i,j,k,n,m]
+    return outM
 end
 
-function getInitGuess(InnerP,H_inv)
+function getInitGuess(InnerP, H_inv)
     #InitialGuess
     ζ = (p.k_1^2-p.k_2^2) * l.V_2 / l.V / p.k_1^2
     @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
-    Mm = I - p.k_1^2 / V_2^2 * ζ * Mm
+    Mm = I - p.k_1^2 / l.V_2^2 * ζ * Mm
     A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
     A1 = -ζ * (p.k_x *[0.0 0 1; 0 0 0; 1 0 0] + p.k_y *[0.0 0 0; 0 0 1; 0 1 0])
     A0 = ζ * (p.k_1^2 * I - p.k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] - p.k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - p.k_x * p.k_y *[0.0 1 0; 1 0 0; 0 0 0]) - (p.k_1^2 - p.k_x^2 - p.k_y^2) * Mm
@@ -95,27 +97,27 @@ function getInitGuess(InnerP,H_inv)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function getMder(λ_value, der, eps = 1.0e-8)
+function getM(λ_value, IPs, eps = 1.0e-8)::Array{Complex{Float64},2}
 
     k_v = [p.k_x ; p.k_y; λ_value]
+    H_inv = getHinv(Gs, k_v, p.k_1)
+    @einsum GH_sum[i,j,k,n,m] := IPs[k,n,m] * H_inv[i,j,k,n,m]
+    GH_sum = dropdims(sum(GH_sum, dims=(3,4,5)),dims=(3,4,5))
+    return I - GH_sum
+end
 
-    if der == 0
-        H_inv = getHinv(Gs, k_v)
-        @einsum GH_sum[i,j,k,n,m] := IP²_factor[k,n,m] * H_inv[i,j,k,n,m]
-        GH_sum = dropdims(sum(GH_sum, dims=(3,4,5)),dims=(3,4,5))
-        return I - GH_sum
-    elseif der == 1 #Recursive implementation of numeric derivative
-        return (det(getMder(λ_value+eps,der-1)) -
-            det(getMder(λ_value-eps,der-1)))/(2*eps)
-    end
+function getMder(λ_value, IPs, eps = 1.0e-8)::Complex{Float64}
+
+    return (det(getM(λ_value+eps, IPs)) -
+            det(getM(λ_value-eps, IPs)))/(2*eps)
 end
 
 function scalarNewton(init, maxiter=1000, tol2=5e-9)
 
     k = init
     for nn in 1:maxiter
-        phik = det(getMder(k,0))
-        knew = k - phik / getMder(k,1)
+        phik = det(getM(k, IP²_factor))
+        knew = k - phik / getMder(k, IP²_factor)
         delk = abs(1 - knew / k)
         if delk < tol2
             global knew = knew
@@ -127,38 +129,7 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
     return knew
 end
 
-function getE_Field(wl_input, nmode, res)
+function getFieldValue(H, KG_slice_y, KG_slice_z, y, z)::ComplexF64
 
-    #find closest computed wl index with respect to input wl
-    n = findmin(abs.(wl_v .- wl_input))[2]
-    if wl_input != wl_v[n]
-        println("Using closeset computed wavelength: ", wl_v[n])
-    end
-    #update dependencies with respect to desired wl
-    ϵ_m = eps_ms[n]
-    global p = Parameters(wl_v[n], φ, θ, ϵ_m, ϵ_bg)
-    #Extract eigen-values/vectors from Newton step
-    k_sol = ksols[n, nmode]
-    c_sol = csols[:, n, nmode]
-    #image range dependent on lattice parameter
-    img_yrange = 2*a #nm
-    img_zrange = sqrt(3)*a #nm
-    ys = -img_yrange/2 : res : img_yrange/2
-    zs = -img_zrange/2 : res : img_zrange/2
-    #Precomputing variables
-    kpGs = [p.k_x, p.k_y, k_sol] .+ Gs
-    HikG = getHinv(Gs, [p.k_x, p.k_y, k_sol])
-    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
-    #Calculation according to manuscript
-    @einsum H_c[i,k,n,m] := IP[k,n,m] * HikG[i,j,k,n,m] * c_sol[j]
-    H_c = H_c ./ l.V
-    #Field components for every z-y position in image range
-    E_x = [sum(H_c[1,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
-        exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
-    E_y = [sum(H_c[2,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
-        exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
-    E_z = [sum(H_c[3,:,:,:] .* exp.(1im*kpGs[2,:,:,:]*y) .*
-        exp.(1im*kpGs[3,:,:,:]*-z )) for z in zs, y in ys]
-
-    return E_x, E_y, E_z
+    return sum(H .* exp.(1im*KG_slice_y*y) .* exp.(1im*KG_slice_z*-z ))
 end
