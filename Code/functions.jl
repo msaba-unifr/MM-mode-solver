@@ -48,14 +48,14 @@ Lattice2D(NG,A,V_2,R) = Lattice2D(NG, A, V_2, R,
 abs(det(A)))
 
 function InnerProd(x;exclude_DC=false)
+    #
     if x == 0
         if exclude_DC
             return 0
         else
-            return l.V_2  # 2 * (1/2)
+            return l.V_2  # 2 * (1/2) * l.V_2
         end
     end
-    #return 2 / x * besselj(1,x)
     return 2 * l.V_2 / x * besselj(1,x)
 end
 
@@ -84,14 +84,16 @@ function getHinv(Gs, k_v, k_1)::Array{Complex{Float64},5}
     return outM
 end
 
-function getInitGuess(InnerP, H_inv)
+function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     #InitialGuess
-    ζ = (p.k_1^2-p.k_2^2) * l.V_2 / l.V / p.k_1^2
+    ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
     @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
-    Mm = I - p.k_1^2 / l.V_2^2 * ζ * Mm
+    Mm = I - k_1^2 / V_2^2 * ζ * Mm
     A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
-    A1 = -ζ * (p.k_x *[0.0 0 1; 0 0 0; 1 0 0] + p.k_y *[0.0 0 0; 0 0 1; 0 1 0])
-    A0 = ζ * (p.k_1^2 * I - p.k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] - p.k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - p.k_x * p.k_y *[0.0 1 0; 1 0 0; 0 0 0]) - (p.k_1^2 - p.k_x^2 - p.k_y^2) * Mm
+    A1 = -ζ * (k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0])
+    A0 = ζ * (k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
+        k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
+        [0.0 1 0; 1 0 0; 0 0 0]) - (k_1^2 - k_x^2 - k_y^2) * Mm
     QEVP_LH = [A1 A0; -I zeros((3,3))]
     QEVP_RH = -[A2 zeros((3,3)); zeros((3,3)) I]
     return eigen(QEVP_LH,QEVP_RH)

@@ -30,7 +30,8 @@ function getMode()
     o_vec = zeros(ComplexF64, (3,1))
     𝓗invs = getHinv(Gs,o_vec, p.k_1)
     #InitialGuess
-    eigs_init = getInitGuess(IP²_noDC,𝓗invs)
+    eigs_init = getInitGuess(IP²_noDC,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+        l.V_2, l.V)
     λs,vs = eigs_init.values, eigs_init.vectors
 
     ks = zeros(ComplexF64,(2))
@@ -135,7 +136,7 @@ function update_dependencies!(; kwargs...)
             global IP² = IP.^2
         end
         if var == :Rad
-            global l = Lattice2D(l.NG, l.A, l.V_2, kwargs[var])
+            global l = Lattice2D(l.NG, l.A, pi*kwargs[var]^2, kwargs[var])
             global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*
                 kwargs[var], exclude_DC=true),dims=1).^2
             global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*
