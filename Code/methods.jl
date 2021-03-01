@@ -65,6 +65,45 @@ function getMode()
     return ksols, csols
 end
 
+function getMwQEP()
+
+    o_vec = zeros(ComplexF64, (3,1))
+    𝓗invs = getHinv(Gs,o_vec, p.k_1)
+    #InitialGuess
+    eigs_init = getInitGuess(IP²_noDC,𝓗invs)
+    λs,vs = eigs_init.values, eigs_init.vectors
+
+    ks = zeros(ComplexF64,(2))
+    cs = zeros(ComplexF64,(3,2))
+    for (i, λ_val) in enumerate(λs)
+
+        if real(λ_val) <= 0
+            continue
+        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
+            continue
+        end
+        if ks[1] == 0
+            ks[1] = λs[i]
+            cs[:, 1] = vs[4:6, i]
+        else
+            ks[2] = λs[i]
+            cs[:, 2] = vs[4:6, i]
+        end
+    end
+    #Solve NLEVP for each non filtered mode
+    ksols = zeros(ComplexF64,(2))
+    csols = zeros(ComplexF64,(3,2))
+    for mode = 1:2
+
+        global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
+        k_sol = scalarNewton(ks[mode])
+        c_sol = qr(conj(getM(k_sol, IP²_factor)), Val(true)).Q[:,end]
+        ksols[mode] = k_sol
+        csols[:, mode] = c_sol
+    end
+    return ksols, csols, ks
+end
+
 function getE_Field(k_sol, c_sol, img_yrange, img_zrange, res)
 
     ys = -img_yrange/2 : res : img_yrange/2

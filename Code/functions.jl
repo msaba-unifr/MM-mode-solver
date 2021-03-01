@@ -113,7 +113,6 @@ function getMder(λ_value, IPs, eps = 1.0e-8)::Complex{Float64}
 end
 
 function scalarNewton(init, maxiter=1000, tol2=5e-9)
-
     k = init
     for nn in 1:maxiter
         phik = det(getM(k, IP²_factor))
