@@ -59,6 +59,15 @@ function InnerProd(x;exclude_DC=false)
     return 2 * l.V_2 / x * besselj(1,x)
 end
 
+function BessnoDC(n,x)
+    #
+    if x == 0
+        return 0
+    else
+        return besselj(n,x)
+    end
+end
+
 # In the 2D case:
 function getGspace()
     #Creating G_space
@@ -82,6 +91,28 @@ function getHinv(Gs, k_v, k_1)::Array{Complex{Float64},5}
     outM = Matrix{ComplexF64}(I,3,3) .- outM / k_1^2
     @einsum outM[i,j,k,n,m] = H_factor[k,n,m] * outM[i,j,k,n,m]
     return outM
+end
+
+function getQEP9D(IP9D1, IP9D2, H_inv, k_1, k_2, k_x, k_y, V_2, V)
+    #InitialGuess
+    ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
+    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
+    Gys = Gs[1,:,l.NG]
+    Gzs =
+    IP9D1 = [BessnoDC.(1,(absGs*Rad))./absGs; 1im * Gys./absGs^2 * BessnoDC.(2,absGs*Rad); 1im * Gzs./absGs^2 * BessnoDC.(2,absGs*Rad)]
+    IP9D2 = [BessnoDC.(1,(absGs*Rad))./absGs; -1im * Gys./absGs^2 * BessnoDC.(2,absGs*Rad); -1im * Gzs./absGs^2 * BessnoDC.(2,absGs*Rad)]
+    @einsum Pp[i,j] := IP9D1[i,k,n,m] * IP9D2[j,k,n,m]
+    Kk = kron(Pp,H_inv)
+    @einsum Kk[k,n,m] := kron(PP[k,n,m],H_inv[k,n,m])
+    Kk = V_2 * kron([1.0+0im 0 0;0 Rad^2/4 0;0 0 Rad^2/4],I) - 4 * k_1^2 / V_2^2 * ζ * Kk
+    A2 = Kk - ζ * kron([1.0 0 0; 0 0 0; 0 0 0],[0.0 0 0; 0 0 0; 0 0 1])
+    A1 = -ζ * kron([1.0 0 0; 0 0 0; 0 0 0],(k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0]))
+    A0 = ζ * kron([1.0 0 0; 0 0 0; 0 0 0],(k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
+        k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
+        [0.0 1 0; 1 0 0; 0 0 0])) - (k_1^2 - k_x^2 - k_y^2) * Kk
+    QEVP_LH = [A1 A0; -I zeros((9,9))]
+    QEVP_RH = -[A2 zeros((9,9)); zeros((9,9)) I]
+    return eigen(QEVP_LH,QEVP_RH)
 end
 
 function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)

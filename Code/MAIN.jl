@@ -8,8 +8,8 @@ include("methods.jl")
 
 #Parameters set by the user
 wl = 600
-φ = 45 #for k_x
-θ = 45 #for k_y
+φ = 90
+θ = 0
 NG = 10
 ϵ_bg = 1 + 0im
 mat_file = "Ag_JC_nk.txt"
@@ -28,6 +28,9 @@ Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
 update_dependencies!()
 
 ksols,csols = getMode()
+
+ksQEP3D =
+ksQEP9D =
 
 E = getE_Field(ksols[2], csols[:,2], 2*a, sqrt(3)*a, 0.25)
 
