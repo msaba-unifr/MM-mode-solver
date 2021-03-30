@@ -99,27 +99,23 @@ function getQEP9D(H_inv, k_1, k_2, k_x, k_y, V_2, V)
     absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
     Gys = Gs[2,:,:,:]
     Gzs = Gs[3,:,:,:]
-    IP9D1 = [BessQnoDC.(1,(absGs*Rad)),
-        Gys.^2 ./ (absGs.^2) * Rad^2/4 .* (BessQnoDC.(1,absGs*Rad) - BessQnoDC.(3,absGs*Rad)),
-        Gzs.^2 ./ (absGs.^2) * Rad^2/4 .* (BessQnoDC.(1,absGs*Rad) - BessQnoDC.(3,absGs*Rad))]
-    IP9D1 = [IP9D1[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:2*l.NG+1, k in 1:1]
-    IP9D1[:,l.NG+1,l.NG+1,:] .= 0
-    # IP9D2[:,l.NG+1,l.NG+1,:] .= 0
-    @einsum Pp[i,j,k,n,m] := IP9D1[i,k,n,m] * IP9D1[j,k,n,m]
-    # Pp[:,:,NG+1,NG+1,:] .= 0
-    # Kk = kron(Pp,H_inv)
+    IP9D = [BessQnoDC.(1,(absGs*Rad)),
+        Gys.^2 ./ (absGs.^2) * Rad^2/4 .* (BessQnoDC.(1,absGs*Rad) - 3*BessQnoDC.(3,absGs*Rad)),
+        Gzs.^2 ./ (absGs.^2) * Rad^2/4 .* (BessQnoDC.(1,absGs*Rad) - 3*BessQnoDC.(3,absGs*Rad))]
+    IP9D = [IP9D[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:2*l.NG+1, k in 1:1]
+    IP9D[:,l.NG+1,l.NG+1,:] .= 0
+    @einsum Pp[i,j,k,n,m] := IP9D[i,k,n,m] * IP9D[j,k,n,m]
     Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     Kk = sum(Kk)
     Pp0 = [1.0+0im Rad^2/4 Rad^2/4;Rad^2/4 Rad^4/8 Rad^4/24;Rad^2/4 Rad^4/24 Rad^4/8]
-    # [println(Kk[1,1,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     Kk = kron(Pp0,one(ones(3,3))) - 4 * (k_1^2-k_2^2)* V_2/V * Kk
     A2 = Kk - ζ * kron(Pp0,[0.0 0 0; 0 0 0; 0 0 1])
     A1 = -ζ * kron(Pp0,(k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0]))
     A0 = ζ * kron(Pp0,(k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
         k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
         [0.0 1 0; 1 0 0; 0 0 0])) - (k_1^2 - k_x^2 - k_y^2) * Kk
-    QEVP_LH = [A1 A0; -one(ones(9,9)) zeros((9,9))]
-    QEVP_RH = -[A2 zeros((9,9)); zeros((9,9)) one(ones(9,9))]
+    QEVP_LH = [A1 A0; -I zeros((9,9))]
+    QEVP_RH = -[A2 zeros((9,9)); zeros((9,9)) I]
     return eigen(QEVP_LH,QEVP_RH)
 end
 
