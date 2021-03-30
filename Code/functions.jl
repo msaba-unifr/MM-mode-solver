@@ -100,8 +100,8 @@ function getQEP9D(H_inv, k_1, k_2, k_x, k_y, V_2, V)
     Gys = Gs[2,:,:,:]
     Gzs = Gs[3,:,:,:]
     IP9D1 = [BessQnoDC.(1,(absGs*Rad)),
-        Gys.^2 ./ (absGs.^2) * Rad^2/4 .* (besselj.(1,absGs*Rad) - besselj.(3,absGs*Rad)),
-        Gzs.^2 ./ (absGs.^2) * Rad^2/4 .* (besselj.(1,absGs*Rad) - besselj.(3,absGs*Rad))]
+        Gys.^2 ./ (absGs.^2) * Rad^2/4 .* (BessQnoDC.(1,absGs*Rad) - BessQnoDC.(3,absGs*Rad)),
+        Gzs.^2 ./ (absGs.^2) * Rad^2/4 .* (BessQnoDC.(1,absGs*Rad) - BessQnoDC.(3,absGs*Rad))]
     IP9D1 = [IP9D1[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:2*l.NG+1, k in 1:1]
     IP9D1[:,l.NG+1,l.NG+1,:] .= 0
     # IP9D2[:,l.NG+1,l.NG+1,:] .= 0
