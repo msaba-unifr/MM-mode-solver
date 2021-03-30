@@ -59,12 +59,12 @@ function InnerProd(x;exclude_DC=false)
     return 2 * l.V_2 / x * besselj(1,x)
 end
 
-function BessnoDC(n,x)
+function BessQnoDC(n,x)
     #
     if x == 0
         return 0
     else
-        return besselj(n,x)
+        return besselj(n,x)/x
     end
 end
 
@@ -93,25 +93,33 @@ function getHinv(Gs, k_v, k_1)::Array{Complex{Float64},5}
     return outM
 end
 
-function getQEP9D(IP9D1, IP9D2, H_inv, k_1, k_2, k_x, k_y, V_2, V)
+function getQEP9D(H_inv, k_1, k_2, k_x, k_y, V_2, V)
     #InitialGuess
     ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
     absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
-    Gys = Gs[1,:,l.NG]
-    Gzs =
-    IP9D1 = [BessnoDC.(1,(absGs*Rad))./absGs; 1im * Gys./absGs^2 * BessnoDC.(2,absGs*Rad); 1im * Gzs./absGs^2 * BessnoDC.(2,absGs*Rad)]
-    IP9D2 = [BessnoDC.(1,(absGs*Rad))./absGs; -1im * Gys./absGs^2 * BessnoDC.(2,absGs*Rad); -1im * Gzs./absGs^2 * BessnoDC.(2,absGs*Rad)]
-    @einsum Pp[i,j] := IP9D1[i,k,n,m] * IP9D2[j,k,n,m]
-    Kk = kron(Pp,H_inv)
-    @einsum Kk[k,n,m] := kron(PP[k,n,m],H_inv[k,n,m])
-    Kk = V_2 * kron([1.0+0im 0 0;0 Rad^2/4 0;0 0 Rad^2/4],I) - 4 * k_1^2 / V_2^2 * ζ * Kk
-    A2 = Kk - ζ * kron([1.0 0 0; 0 0 0; 0 0 0],[0.0 0 0; 0 0 0; 0 0 1])
-    A1 = -ζ * kron([1.0 0 0; 0 0 0; 0 0 0],(k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0]))
-    A0 = ζ * kron([1.0 0 0; 0 0 0; 0 0 0],(k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
+    Gys = Gs[2,:,:,:]
+    Gzs = Gs[3,:,:,:]
+    IP9D1 = [BessQnoDC.(1,(absGs*Rad)),
+        Gys.^2 ./ (absGs.^2) * Rad^2/4 .* (besselj.(1,absGs*Rad) - besselj.(3,absGs*Rad)),
+        Gzs.^2 ./ (absGs.^2) * Rad^2/4 .* (besselj.(1,absGs*Rad) - besselj.(3,absGs*Rad))]
+    IP9D1 = [IP9D1[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:2*l.NG+1, k in 1:1]
+    IP9D1[:,l.NG+1,l.NG+1,:] .= 0
+    # IP9D2[:,l.NG+1,l.NG+1,:] .= 0
+    @einsum Pp[i,j,k,n,m] := IP9D1[i,k,n,m] * IP9D1[j,k,n,m]
+    # Pp[:,:,NG+1,NG+1,:] .= 0
+    # Kk = kron(Pp,H_inv)
+    Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
+    Kk = sum(Kk)
+    Pp0 = [1.0+0im Rad^2/4 Rad^2/4;Rad^2/4 Rad^4/8 Rad^4/24;Rad^2/4 Rad^4/24 Rad^4/8]
+    # [println(Kk[1,1,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
+    Kk = kron(Pp0,one(ones(3,3))) - 4 * (k_1^2-k_2^2)* V_2/V * Kk
+    A2 = Kk - ζ * kron(Pp0,[0.0 0 0; 0 0 0; 0 0 1])
+    A1 = -ζ * kron(Pp0,(k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0]))
+    A0 = ζ * kron(Pp0,(k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
         k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
         [0.0 1 0; 1 0 0; 0 0 0])) - (k_1^2 - k_x^2 - k_y^2) * Kk
-    QEVP_LH = [A1 A0; -I zeros((9,9))]
-    QEVP_RH = -[A2 zeros((9,9)); zeros((9,9)) I]
+    QEVP_LH = [A1 A0; -one(ones(9,9)) zeros((9,9))]
+    QEVP_RH = -[A2 zeros((9,9)); zeros((9,9)) one(ones(9,9))]
     return eigen(QEVP_LH,QEVP_RH)
 end
 
