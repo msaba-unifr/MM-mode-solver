@@ -3,7 +3,7 @@ include("functions.jl")
 function Init_Workspace(; wl = 600, φ = 45, θ = 45, NG = 10, ϵ_bg = 1 + 0im,
         ϵ_m = "Ag_JC_nk.txt", A = [30/2 30; sqrt(3)*30/2 0],
         Rad = 10.0, V_2 = pi*10.0^2)
-    global l = Lattice2D(NG,A,V_2,Rad)
+    global l = Lattice1D(NG,a,V_2,Rad)
     #Creating G_space
     global Gs = getGspace()
     global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,

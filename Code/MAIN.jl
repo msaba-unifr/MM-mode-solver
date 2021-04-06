@@ -14,18 +14,17 @@ NG = 5
 ϵ_bg = 1 + 0im
 mat_file = "Ag_JC_nk.txt"
 a = 30.0                            #lattice constant
-A = [a/2 a; sqrt(3)*a/2 0]
 # IF Ω₂ = {r : |r| < R, r ∈ ℝ², R ∈ ℝ} (i.e. disks/cylinders)
 Rad = 10.0
-V_2 = pi*Rad^2                              #Volume definition required
+V_2 = 2*Rad                              #Volume definition required
 
 
 #Code starts here
 Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
-    ϵ_m = mat_file, A = A, Rad = Rad, V_2 = V_2)
+    ϵ_m = mat_file, A = a, Rad = Rad, V_2 = V_2)
 
 
-update_dependencies!(NG=5)
+# update_dependencies!(NG=5)
 #
 # ksols,csols = getMode()
 
