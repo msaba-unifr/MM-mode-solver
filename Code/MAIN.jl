@@ -30,7 +30,7 @@ Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
 
 o_vec = zeros(ComplexF64, (3,1))
 𝓗invs = getHinv(Gs,o_vec, p.k_1)
-ksQEP3D,csQEP3D = getInitGuess(IP²_noDC,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
+# ksQEP3D,csQEP3D = getInitGuess(IP²_noDC,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
 ksQEP9D,csQEP9D = getQEP9D(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
 
 # E = getE_Field(ksols[2], csols[:,2], 2*a, sqrt(3)*a, 0.25)
