@@ -9,8 +9,8 @@ include("methods.jl")
 #Parameters set by the user
 wl = 600
 φ = 90
-θ = 0
-NG = 5
+θ = 89
+NG = 500
 ϵ_bg = 1 + 0im
 mat_file = "Ag_JC_nk.txt"
 a = 30.0                            #lattice constant
