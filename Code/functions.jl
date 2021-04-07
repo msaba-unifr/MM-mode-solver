@@ -121,9 +121,9 @@ function getQEP9D(H_inv, k_1, k_2, k_x, k_y, V_2, V)
     @einsum Pp[i,j,k,n,m] := IP9D[i,k,n,m] * IP9Dconj[j,k,n,m]
     Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
     Kk = sum(Kk)
-    Q = [1.0+0im 0 1/12;0 1/12 0;1/12 0 1/80]
+    Qq = [1.0+0im 0 1/12;0 1/12 0;1/12 0 1/80]
     Pp0 = [1.0+0im 0 1/12;0 0 0;1/12 0 1/144]
-    Kk = kron(Q,one(ones(3,3))) - (k_1^2-k_2^2)* V_2/V * Kk
+    Kk = kron(Qq,one(ones(3,3))) - (k_1^2-k_2^2)* V_2/V * Kk
     A2 = Kk - ζ * kron(Pp0,[0.0 0 0; 0 0 0; 0 0 1])
     A1 = -ζ * kron(Pp0,(k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0]))
     A0 = ζ * kron(Pp0,(k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
