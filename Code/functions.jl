@@ -181,6 +181,50 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
     return knew
 end
 
+function getpolyM(λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
+
+    k_v = [p.k_x ; p.k_y; λ_value]
+    H_inv = getHinv(Gs, k_v, p.k_1)
+    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
+    Gys = Gs[2,:,:,:]
+    Gzs = Gs[3,:,:,:]
+    IP9D = [sinc.(V_2/2/pi * Gzs),
+        1im ./(V_2 * Gzs) .* (sinc.(V_2/2/pi * Gzs) - cos.(V_2/2 * Gzs)),
+        1/4 * sinc.(V_2/2/pi * Gzs) + 2 ./(V_2^2 * Gzs.^2) .* (cos.(V_2/2 * Gzs) - sinc.(V_2/2/pi * Gzs))]
+    IP9D = [IP9D[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+    IP9D[:,l.NG+1,:,:] = [1,0,1/12]
+    IP9Dconj = conj.(IP9D)
+    @einsum Pmat[i,j,k,n,m] := IP9D[i,k,n,m] * IP9Dconj[j,k,n,m]
+    Qmat = [1.0+0im 0 1/12;0 1/12 0;1/12 0 1/80]
+    summands = [kron(Pmat[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    latsum = sum(summands)
+    EVPmatrix = kron(Qmat,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
+    return EVPmatrix
+end
+
+function getpolyMder(λ_value, eps = 1.0e-8)::Complex{Float64}
+
+    return (det(getpolyM(λ_value+eps)) -
+            det(getpolyM(λ_value-eps)))/(2*eps)
+end
+
+function polyNewton(init, maxiter=1000, tol2=5e-9)
+
+    k = init
+    for nn in 1:maxiter
+        phik = det(getpolyM(k))
+        knew = k - phik / getpolyMder(k)
+        delk = abs(1 - knew / k)
+        if delk < tol2
+            global knew = knew
+            break
+        end
+        k = knew
+        nn == maxiter ? throw("No conv in Newton") : nothing
+    end
+    return knew
+end
+
 function getFieldValue(H, KG_slice_y, KG_slice_z, y, z)::ComplexF64
 
     return sum(H .* exp.(1im*KG_slice_y*y) .* exp.(1im*KG_slice_z*-z ))

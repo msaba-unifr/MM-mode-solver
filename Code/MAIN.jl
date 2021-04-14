@@ -9,8 +9,8 @@ include("methods.jl")
 #Parameters set by the user
 wl = 600
 φ = 90
-θ = 89
-NG = 500
+θ = 0
+NG = 10
 ϵ_bg = 1 + 0im
 mat_file = "Ag_JC_nk.txt"
 a = 30.0                            #lattice constant
@@ -26,13 +26,13 @@ Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
 
 # update_dependencies!(NG=5)
 #
-# ksols,csols = getMode()
 
 o_vec = zeros(ComplexF64, (3,1))
 𝓗invs = getHinv(Gs,o_vec, p.k_1)
 # ksQEP3D,csQEP3D = getInitGuess(IP²_noDC,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
 ksQEP9D,csQEP9D = getQEP9D(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
 
+ksols,csols = getpolyMode()
 # E = getE_Field(ksols[2], csols[:,2], 2*a, sqrt(3)*a, 0.25)
 #
 #
