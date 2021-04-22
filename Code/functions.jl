@@ -182,22 +182,19 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
 end
 
 function getpolyM(λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
-
     k_v = [p.k_x ; p.k_y; λ_value]
     H_inv = getHinv(Gs, k_v, p.k_1)
-    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
-    Gys = Gs[2,:,:,:]
     Gzs = Gs[3,:,:,:]
     IP9D = [sinc.(V_2/2/pi * Gzs),
         1im ./(V_2 * Gzs) .* (sinc.(V_2/2/pi * Gzs) - cos.(V_2/2 * Gzs)),
         1/4 * sinc.(V_2/2/pi * Gzs) + 2 ./(V_2^2 * Gzs.^2) .* (cos.(V_2/2 * Gzs) - sinc.(V_2/2/pi * Gzs))]
     IP9D = [IP9D[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-    IP9D[:,l.NG+1,:,:] = [1,0,1/12]
+    IP9D[:,l.NG+1,1,1] = [1.0,0,1/12]
     IP9Dconj = conj.(IP9D)
     @einsum Pmat[i,j,k,n,m] := IP9D[i,k,n,m] * IP9Dconj[j,k,n,m]
-    Qmat = [1.0+0im 0 1/12;0 1/12 0;1/12 0 1/80]
     summands = [kron(Pmat[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
     latsum = sum(summands)
+    Qmat = [1.0+0im 0 1/12;0 1/12 0;1/12 0 1/80]
     EVPmatrix = kron(Qmat,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
     return EVPmatrix
 end
@@ -228,4 +225,54 @@ end
 function getFieldValue(H, KG_slice_y, KG_slice_z, y, z)::ComplexF64
 
     return sum(H .* exp.(1im*KG_slice_y*y) .* exp.(1im*KG_slice_z*-z ))
+end
+
+function solve_analytical(params,lattice,TE=true)
+    eps1 = params.e_bg; eps2 = params.e_m
+    println(); println("eps_m = ",eps2)
+    k1 = sqrt(eps1-sin(params.incl/180*pi)^2)*params.k_0
+    k2 = sqrt(eps2-sin(params.incl/180*pi)^2)*params.k_0
+    d2 = lattice.V_2; d1 = lattice.A-d2
+    Z1 = k1; Z2 = k2
+    if TE==false
+        Z1 = k1/eps1; Z2 = k2/eps2
+    end
+    Up = (cos(k1*d1)+1im/2*(Z1/Z2+Z2/Z1)*sin(k1*d1))*exp( 1im*k2*d2)
+    Um = (cos(k1*d1)-1im/2*(Z1/Z2+Z2/Z1)*sin(k1*d1))*exp(-1im*k2*d2)
+    V = 1im/2*(Z2/Z1-Z1/Z2)*sin(k1*d1)
+    T = [Up -V; V Um]
+    return eigen(T)
+end
+
+function getD2field_9D(k,c,lattice,z)
+    d2 = lattice.V_2
+    if abs(c[1]) > abs(c[2])
+        return (1+c[4]/c[1]*z/d2+c[7]/c[1]*(z/d2)^2)*exp(1im*k*z)
+    else
+        return (1+c[5]/c[2]*z/d2+c[8]/c[2]*(z/d2)^2)*exp(1im*k*z)
+    end
+end
+
+function getEfield_9D(k,c,lattice,params,z)
+    k_v = [params.k_x ; params.k_y; k]
+    H_inv = getHinv(Gs, k_v, params.k_1)
+    Gzs = Gs[3,:,:,:]
+    IP9D = [sinc.(V_2/2/pi * Gzs),
+        - 1im ./(V_2 * Gzs) .* (sinc.(V_2/2/pi * Gzs) - cos.(V_2/2 * Gzs)),
+        1/4 * sinc.(V_2/2/pi * Gzs) + 2 ./(V_2^2 * Gzs.^2) .* (cos.(V_2/2 * Gzs) - sinc.(V_2/2/pi * Gzs))]
+    IP9D = [IP9D[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+    IP9D[:,l.NG+1,:,:] = [1.0,0,1/12]
+    multi = [kron(IP9D[:,k,l,m],H_inv[i,:,k,l,m]) for i in 1:3, k in 1:2*l.NG+1, l in 1:1, m in 1:1]
+    multi = [multi[i,k,l,m][j] for i in 1:3, j in 1:9, k in 1:2*l.NG+1, l in 1:1, m in 1:1]
+    @einsum εG[i,k,l,m] := multi[i,j,k,l,m]*c[j]
+    phase = exp.(1im*(k .+ Gzs)*z)
+    @einsum summand[k,l,m] := εG[2,k,l,m]*phase[k,l,m]
+    return first(sum(summand,dims=(1,2,3)))
+end
+
+
+function getD2field_ana(lams,vs,params,lattice,z)
+    a = lattice.A
+    k2 = sqrt(params.e_m-sin(params.incl/180*pi)^2)*params.k_0
+    return (vs[1,1]*exp(1im*k2*z) + vs[2,1]*exp(-1im*k2*z))/(vs[1,1]+vs[2,1])
 end

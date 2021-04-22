@@ -100,7 +100,7 @@ function getpolyMode()
 
         # global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
         k_sol = polyNewton(ks[mode])
-        c_sol = qr(conj(getpolyM(k_sol)), Val(true)).Q[:,end]
+        c_sol = qr(transpose(conj(getpolyM(k_sol))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end
