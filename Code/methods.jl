@@ -66,12 +66,12 @@ function getMode()
     return ksols, csols
 end
 
-function getpolyMode()
+function getpoly2Mode()
 
     o_vec = zeros(ComplexF64, (3,1))
     𝓗invs = getHinv(Gs,o_vec, p.k_1)
     #InitialGuess
-    eigs_init = getQEP9D(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+    eigs_init = getQEPpoly2(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
         l.V_2, l.V)
     λs,vs = eigs_init.values, eigs_init.vectors
 
@@ -99,8 +99,49 @@ function getpolyMode()
     for mode = 1:2
 
         # global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
-        k_sol = polyNewton(ks[mode])
-        c_sol = qr(transpose(conj(getpolyM(k_sol))), Val(true)).Q[:,end]
+        k_sol = poly2Newton(ks[mode])
+        c_sol = qr(transpose(conj(getpoly2M(k_sol))), Val(true)).Q[:,end]
+        ksols[mode] = k_sol
+        csols[:, mode] = c_sol
+    end
+    return ksols, csols
+end
+
+function getpoly4Mode()
+
+    o_vec = zeros(ComplexF64, (3,1))
+    𝓗invs = getHinv(Gs,o_vec, p.k_1)
+    #InitialGuess
+    eigs_init = getQEPpoly4(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+        l.V_2, l.V)
+    λs,vs = eigs_init.values, eigs_init.vectors
+
+    ks = zeros(ComplexF64,(2))
+    cs = zeros(ComplexF64,(15,2))
+    for (i, λ_val) in enumerate(λs)
+
+        if real(λ_val) <= 0
+            continue
+        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
+            continue
+        end
+        if ks[1] == 0
+            ks[1] = λs[i]
+            cs[:, 1] = vs[16:30, i]
+        else
+            ks[2] = λs[i]
+            cs[:, 2] = vs[16:30, i]
+        end
+    end
+
+    #Solve NLEVP for each non filtered mode
+    ksols = zeros(ComplexF64,(2))
+    csols = zeros(ComplexF64,(15,2))
+    for mode = 1:2
+
+        # global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
+        k_sol = poly4Newton(ks[mode])
+        c_sol = qr(transpose(conj(getpoly4M(k_sol))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end

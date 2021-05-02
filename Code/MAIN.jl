@@ -25,10 +25,11 @@ Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
 o_vec = zeros(ComplexF64, (3,1))
 𝓗invs = getHinv(Gs,o_vec, p.k_1)
 # ksQEP3D,csQEP3D = getInitGuess(IP²_noDC,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
-ksQEP9D,csQEP9D = getQEP9D(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
+ksQEPpoly2,csQEPpoly2 = getQEPpoly2(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
 ksQEPpoly4,csQEPpoly4 = getQEPpoly4(𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
 
-ksols,csols = getpolyMode()
+ksolspoly2,csolspoly2 = getpoly2Mode()
+ksolspoly4,csolspoly4 = getpoly4Mode()
 lam_ana,v_ana = solve_analytical(p,l,0)
 
 Nz = 100
