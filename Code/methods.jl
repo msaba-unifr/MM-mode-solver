@@ -59,7 +59,7 @@ function getMode()
 
         global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
         k_sol = scalarNewton(ks[mode])
-        c_sol = qr(conj(getM(k_sol, IP²_factor)), Val(true)).Q[:,end]
+        c_sol = qr(transpose(conj(getM(k_sol, IP²_factor))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end
