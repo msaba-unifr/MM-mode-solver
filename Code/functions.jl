@@ -92,12 +92,16 @@ function BessQnoDC(n,x)
     end
 end
 
-# In the 2D case:
-function getGspace()
-    #Creating G_space
+
+function getGspace(mmdim)
     space_ax = -l.NG:1.0:l.NG
-    Gs = [l.B*[h,k,n] for h in space_ax, k in 0:0, n in 0:0]
-    Gs = [Gs[h,k,n][i] for i in 1:3, h in 1:2*l.NG+1, k in 1:1, n in 1:1]
+    if mmdim == 1
+        Gs = [l.B*[h,k,n] for h in space_ax, k in 0:0, n in 0:0]
+        Gs = [Gs[h,k,n][i] for i in 1:3, h in 1:2*l.NG+1, k in 1:1, n in 1:1]
+    elseif mmdim == 2
+        Gs = [l.B*[h,k,n] for h in space_ax, k in space_ax, n in 0:0]
+        Gs = [Gs[h,k,n][i] for i in 1:3, h in 1:2*l.NG+1, k in 1:2*l.NG+1, n in 1:1]
+    end
     return Gs
 end
 

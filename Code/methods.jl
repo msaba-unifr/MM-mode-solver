@@ -9,7 +9,7 @@ function Init_Workspace(; wl = 600, φ = 45, θ = 45, NG = 10, ϵ_bg = 1 + 0im,
         global l = Lattice2D(NG,A,V_2,Rad)
     end
     #Creating G_space
-    global Gs = getGspace()
+    global Gs = getGspace(mmdim)
     global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,mmdim,
         exclude_DC=true),dims=1).^2
     global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,mmdim),dims=1)
