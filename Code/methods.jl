@@ -2,13 +2,13 @@ include("functions.jl")
 
 function Init_Workspace(; wl = 600, φ = 45, θ = 45, NG = 10, ϵ_bg = 1 + 0im,
         ϵ_m = "Ag_JC_nk.txt", A = [30/2 30; sqrt(3)*30/2 0],
-        Rad = 10.0, V_2 = pi*10.0^2)
+        Rad = 10.0, V_2 = pi*10.0^2, mmdim = 1)
     global l = Lattice1D(NG,a,V_2,Rad)
     #Creating G_space
     global Gs = getGspace()
-    global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,
+    global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,mmdim,
         exclude_DC=true),dims=1).^2
-    global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad),dims=1)
+    global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,mmdim),dims=1)
     global IP² = IP.^2
 
     #Interpolating (n,k) data from txt file
@@ -142,6 +142,47 @@ function getpoly4Mode()
         # global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
         k_sol = poly4Newton(ks[mode])
         c_sol = qr(transpose(conj(getpoly4M(k_sol))), Val(true)).Q[:,end]
+        ksols[mode] = k_sol
+        csols[:, mode] = c_sol
+    end
+    return ksols, csols
+end
+
+function getpolyxMode(deg)
+
+    o_vec = zeros(ComplexF64, (3,1))
+    𝓗invs = getHinv(Gs,o_vec, p.k_1)
+    #InitialGuess
+    eigs_init = getQEPpolyx(deg,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+        l.V_2, l.V)
+    λs,vs = eigs_init.values, eigs_init.vectors
+
+    ks = zeros(ComplexF64,(2))
+    cs = zeros(ComplexF64,(3*(deg+1),2))
+    for (i, λ_val) in enumerate(λs)
+
+        if real(λ_val) <= 0
+            continue
+        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
+            continue
+        end
+        if ks[1] == 0
+            ks[1] = λs[i]
+            cs[:, 1] = vs[3*(deg+1)+1:6*(deg+1), i]
+        else
+            ks[2] = λs[i]
+            cs[:, 2] = vs[3*(deg+1)+1:6*(deg+1), i]
+        end
+    end
+
+    #Solve NLEVP for each non filtered mode
+    ksols = zeros(ComplexF64,(2))
+    csols = zeros(ComplexF64,(3*(deg+1),2))
+    for mode = 1:2
+
+        # global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
+        k_sol = polyxNewton(deg,ks[mode])
+        c_sol = qr(transpose(conj(getpolyxM(deg,k_sol))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end

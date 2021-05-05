@@ -60,16 +60,27 @@ Lattice1D(NG,a,V_2,R) = Lattice1D(NG, a, V_2, R,
 2*pi/a*[0 0 0; 0 0 0; 1 0 0],
 a)
 
-function InnerProd(x;exclude_DC=false)
+function InnerProd(x,dim;exclude_DC=false)
     #
-    if x == 0
-        if exclude_DC
-            return 0
-        else
-            return l.V_2  # 2 * (1/2) * l.V_2
+    if dim == 2
+        if x == 0
+            if exclude_DC
+                return 0
+            else
+                return l.V_2  # 2 * (1/2) * l.V_2
+            end
         end
+        return 2 * l.V_2 / x * besselj(1,x)
+    elseif dim == 1
+        if x == 0
+            if exclude_DC
+                return 0
+            else
+                return l.V_2
+            end
+        end
+        return l.V_2 * sin(x)/x
     end
-    return 2 * l.V_2 / x * besselj(1,x)
 end
 
 function BessQnoDC(n,x)
@@ -188,7 +199,7 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
         Qq = [1.0+0im 0 1/3 0 1/5;0 1/3 0 1/5 0;1/3 0 1/5 0 1/7;0 1/5 0 1/7 0;1/5 0 1/7 0 1/9]
         Pp0 = [1.0+0im 0 1/3 0 1/5;0 0 0 0 0;1/3 0 1/9 0 1/15;0 0 0 0 0;1/5 0 1/15 0 1/25]
     else
-        println('specified polynomial degree not implemented')
+        println("specified polynomial degree not implemented")
     end
     IPvec = [IPvec[n][i,j,k] for n in 1:deg+1, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
     IPvec[:,l.NG+1,:,:] .= 0
@@ -202,8 +213,8 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     A0 = ζ * kron(Pp0,(k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
         k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
         [0.0 1 0; 1 0 0; 0 0 0])) - (k_1^2 - k_x^2 - k_y^2) * Kk
-    QEVP_LH = [A1 A0; -I zeros((3*deg,3*deg))]
-    QEVP_RH = -[A2 zeros((3*deg,3*deg)); zeros((3*deg,3*deg)) I]
+    QEVP_LH = [A1 A0; -I zeros(3*(deg+1),3*(deg+1))]
+    QEVP_RH = -[A2 zeros(3*(deg+1),3*(deg+1)); zeros(3*(deg+1),3*(deg+1)) I]
     return eigen(QEVP_LH,QEVP_RH)
 end
 
@@ -260,7 +271,7 @@ function getCuEP(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     Mm1 = ζ* kron(Pp0,kpar*[0,0,1]' .- conj.(kpar*[0,0,1]')) - ζ * Ss1
     Mm2 = -kron(Qq,one(ones(3,3))) .+ ζ * kron(Pp0,[0 0 0;0 0 0;0 0 1]) .+ Ss2
     Mm3 = Ss3
-    return eigen(QEVP_LH,QEVP_RH)
+    return
 end
 
 function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
@@ -394,6 +405,66 @@ function poly4Newton(init, maxiter=1000, tol2=5e-9)
     return knew
 end
 
+function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
+    k_v = [p.k_x ; p.k_y; λ_value]
+    H_inv = getHinv(Gs, k_v, p.k_1)
+    Gzs = Gs[3,:,:,:]
+    uuu = Gzs*l.R
+    if deg == 0
+        IPvec = sin.(uuu)./uuu
+        Qq = 0
+        IPvec = [IPvec[n][i,j,k] for n in 1:5, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+        IPvec[:,l.NG+1,1,1] = 1
+    elseif deg == 2
+        IPvec = [sin.(uuu)./uuu,
+                 1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
+                 1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu))]
+        Qq = [1.0+0im 0 1/3;0 1/3 0;1/3 0 1/5]
+        IPvec = [IPvec[n][i,j,k] for n in 1:5, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+        IPvec[:,l.NG+1,1,1] = [1.0,0,1/3]
+    elseif deg == 4
+        IPvec = [sin.(uuu)./uuu,
+                 1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
+                 1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu)),
+                 1im ./ uuu.^4 .* ((6*uuu .- uuu.^3).*cos.(uuu) + (3*uuu.^2 .- 6).*sin.(uuu)),
+                 1   ./ uuu.^5 .* (4*(uuu.^3 .-6*uuu).*cos.(uuu) + (uuu.^4 .- 12*uuu.^2 .+ 24).*sin.(uuu))]
+        Qq = [1.0+0im 0 1/3 0 1/5;0 1/3 0 1/5 0;1/3 0 1/5 0 1/7;0 1/5 0 1/7 0;1/5 0 1/7 0 1/9]
+        IPvec = [IPvec[n][i,j,k] for n in 1:5, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+        IPvec[:,l.NG+1,1,1] = [1.0,0,1/3,0,1/5]
+    else
+        println("specified polynomial degree not implemented")
+    end
+    IPvecconj = conj.(IPvec)
+    @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
+    summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    latsum = sum(summands)
+    EVPmatrix = kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
+    return EVPmatrix
+end
+
+function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
+
+    return (det(getpolyxM(deg,λ_value+eps)) -
+            det(getpolyxM(deg,λ_value-eps)))/(2*eps)
+end
+
+function polyxNewton(deg,init, maxiter=1000, tol2=5e-9)
+
+    k = init
+    for nn in 1:maxiter
+        phik = det(getpolyxM(deg,k))
+        knew = k - phik / getpolyxMder(deg,k)
+        delk = abs(1 - knew / k)
+        if delk < tol2
+            global knew = knew
+            break
+        end
+        k = knew
+        nn == maxiter ? throw("No conv in Newton") : nothing
+    end
+    return knew
+end
+
 function getFieldValue(H, KG_slice_y, KG_slice_z, y, z)::ComplexF64
 
     return sum(H .* exp.(1im*KG_slice_y*y) .* exp.(1im*KG_slice_z*-z ))
@@ -416,12 +487,21 @@ function solve_analytical(params,lattice,TE=true)
     return eigen(T)
 end
 
-function getD2field_9D(k,c,lattice,z)
-    d2 = lattice.V_2
+function getD2field_poly2(k,c,lattice,z)
     if abs(c[1]) > abs(c[2])
-        return (1+c[4]/c[1]*z/d2+c[7]/c[1]*(z/d2)^2)*exp(1im*k*z)
+        return (1+c[4]/c[1]*z/l.R+c[7]/c[1]*(z/l.R)^2)*exp(1im*k*z)
     else
-        return (1+c[5]/c[2]*z/d2+c[8]/c[2]*(z/d2)^2)*exp(1im*k*z)
+        return (1+c[5]/c[2]*z/l.R+c[8]/c[2]*(z/l.R)^2)*exp(1im*k*z)
+    end
+end
+
+function getD2field_poly4(k,c,lattice,z)
+    if abs(c[1]) > abs(c[2])
+        return (1+c[4]/c[1]*z/l.R+c[7]/c[1]*(z/l.R)^2
+        +c[10]/c[1]*(z/l.R)^3+c[13]/c[1]*(z/l.R)^4)*exp(1im*k*z)
+    else
+        return (1+c[5]/c[2]*z/l.R+c[8]/c[2]*(z/l.R)^2
+        +c[11]/c[2]*(z/l.R)^3+c[14]/c[2]*(z/l.R)^4)*exp(1im*k*z)
     end
 end
 
