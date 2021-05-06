@@ -275,7 +275,11 @@ function getCuEP(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     Mm1 = ζ* kron(Pp0,kpar*[0,0,1]' .- conj.(kpar*[0,0,1]')) - ζ * Ss1
     Mm2 = -kron(Qq,one(ones(3,3))) .+ ζ * kron(Pp0,[0 0 0;0 0 0;0 0 1]) .+ Ss2
     Mm3 = Ss3
-    return
+
+    nep = PEP([Mm0, Mm1, Mm2, Mm3])
+    λ, v = polyeig(nep)
+
+    return λ, v
 end
 
 function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
