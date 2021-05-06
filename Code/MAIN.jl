@@ -30,7 +30,7 @@ o_vec = zeros(ComplexF64, (3,1))
 ksCuEP,csCuEP = getCuEP(2,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
 
 ksolspoly4,csolspoly4 = getpoly4Mode()
-ksolspolyx4,csolspolyx4 = getpolyxMode(0)
+ksolspolyx4,csolspolyx4 = getpolyxMode(4)
 
 lam_ana,v_ana = solve_analytical(p,l,0)
 
