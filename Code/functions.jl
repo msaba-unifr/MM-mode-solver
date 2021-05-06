@@ -60,9 +60,9 @@ Lattice1D(NG,a,V_2,R) = Lattice1D(NG, a, V_2, R,
 2*pi/a*[0 0 0; 0 0 0; 1 0 0],
 a)
 
-function InnerProd(x,dim;exclude_DC=false)
+function InnerProd(x,mmdim;exclude_DC=false)
     #
-    if dim == 2
+    if mmdim == 2
         if x == 0
             if exclude_DC
                 return 0
@@ -71,7 +71,7 @@ function InnerProd(x,dim;exclude_DC=false)
             end
         end
         return 2 * l.V_2 / x * besselj(1,x)
-    elseif dim == 1
+    elseif mmdim == 1
         if x == 0
             if exclude_DC
                 return 0
@@ -119,6 +119,21 @@ function getHinv(Gs, k_v, k_1)::Array{Complex{Float64},5}
     outM = Matrix{ComplexF64}(I,3,3) .- outM / k_1^2
     @einsum outM[i,j,k,n,m] = H_factor[k,n,m] * outM[i,j,k,n,m]
     return outM
+end
+
+function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
+    #InitialGuess
+    ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
+    @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
+    Mm = I - k_1^2 / V_2^2 * ζ * Mm
+    A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
+    A1 = -ζ * (k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0])
+    A0 = ζ * (k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
+        k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
+        [0.0 1 0; 1 0 0; 0 0 0]) - (k_1^2 - k_x^2 - k_y^2) * Mm
+    QEVP_LH = [A1 A0; -I zeros((3,3))]
+    QEVP_RH = -[A2 zeros((3,3)); zeros((3,3)) I]
+    return eigen(QEVP_LH,QEVP_RH)
 end
 
 function getQEPpoly2(H_inv, k_1, k_2, k_x, k_y, V_2, V)
@@ -186,12 +201,15 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     uuu = Gzs*l.R
     if deg == 0
         IPvec = sin.(uuu)./uuu
+        IPvec[l.NG+1,:,:] .= 0
         Qq = 0
         Pp0 = 1
     elseif deg == 2
         IPvec = [sin.(uuu)./uuu,
                  1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
                  1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu))]
+        IPvec = [IPvec[n][i,j,k] for n in 1:deg+1, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+        IPvec[:,l.NG+1,:,:] .= 0
         Qq = [1.0+0im 0 1/3;0 1/3 0;1/3 0 1/5]
         Pp0 = [1.0+0im 0 1/3;0 0 0;1/3 0 1/9]
     elseif deg == 4
@@ -200,16 +218,21 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
                  1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu)),
                  1im ./ uuu.^4 .* ((6*uuu .- uuu.^3).*cos.(uuu) + (3*uuu.^2 .- 6).*sin.(uuu)),
                  1   ./ uuu.^5 .* (4*(uuu.^3 .-6*uuu).*cos.(uuu) + (uuu.^4 .- 12*uuu.^2 .+ 24).*sin.(uuu))]
+        IPvec = [IPvec[n][i,j,k] for n in 1:deg+1, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+        IPvec[:,l.NG+1,:,:] .= 0
         Qq = [1.0+0im 0 1/3 0 1/5;0 1/3 0 1/5 0;1/3 0 1/5 0 1/7;0 1/5 0 1/7 0;1/5 0 1/7 0 1/9]
         Pp0 = [1.0+0im 0 1/3 0 1/5;0 0 0 0 0;1/3 0 1/9 0 1/15;0 0 0 0 0;1/5 0 1/15 0 1/25]
     else
         println("specified polynomial degree not implemented")
     end
-    IPvec = [IPvec[n][i,j,k] for n in 1:deg+1, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-    IPvec[:,l.NG+1,:,:] .= 0
     IPvecconj = conj.(IPvec)
-    @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
-    Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    if deg == 0
+        Pp = IPvec.*IPvecconj
+        Kk = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    else
+        @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
+        Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    end
     Kk = sum(Kk)
     Kk = kron(Qq,one(ones(3,3))) - (k_1^2-k_2^2)* V_2/V * Kk
     A2 = Kk - ζ * kron(Pp0,[0.0 0 0; 0 0 0; 0 0 1])
@@ -280,21 +303,6 @@ function getCuEP(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     λ, v = polyeig(nep)
 
     return λ, v
-end
-
-function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
-    #InitialGuess
-    ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
-    @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
-    Mm = I - k_1^2 / V_2^2 * ζ * Mm
-    A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
-    A1 = -ζ * (k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0])
-    A0 = ζ * (k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
-        k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
-        [0.0 1 0; 1 0 0; 0 0 0]) - (k_1^2 - k_x^2 - k_y^2) * Mm
-    QEVP_LH = [A1 A0; -I zeros((3,3))]
-    QEVP_RH = -[A2 zeros((3,3)); zeros((3,3)) I]
-    return eigen(QEVP_LH,QEVP_RH)
 end
 
 function getM(λ_value, IPs, eps = 1.0e-8)::Array{Complex{Float64},2}
@@ -374,11 +382,17 @@ function getpoly4M(λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
     k_v = [p.k_x ; p.k_y; λ_value]
     H_inv = getHinv(Gs, k_v, p.k_1)
     Gzs = Gs[3,:,:,:]
-    IPvec = [sinc.(V_2/2/pi * Gzs),
-        1im ./(V_2 * Gzs).^2 .* (-2*(V_2 * Gzs)    .*cos.(V_2/2*Gzs) + 4*                  sin.(V_2/2*Gzs)),
-        1 ./(V_2 * Gzs).^3   .* (2*(V_2 * Gzs).^2  .*sin.(V_2/2*Gzs) + 8*(V_2 * Gzs)     .*cos.(V_2/2*Gzs) - 16*                 sin.(V_2/2*Gzs)),
-        1im ./(V_2 * Gzs).^4 .* (-2*(V_2 * Gzs).^3 .*cos.(V_2/2*Gzs) + 12*(V_2 * Gzs).^2 .*sin.(V_2/2*Gzs) + 48*(V_2 * Gzs)    .*cos.(V_2/2*Gzs) - 96*               sin.(V_2/2*Gzs)),
-        1 ./(V_2 * Gzs).^5   .* (2*(V_2 * Gzs).^4  .*sin.(V_2/2*Gzs) + 16*(V_2 * Gzs).^3 .*cos.(V_2/2*Gzs) - 96*(V_2 * Gzs).^2 .*sin.(V_2/2*Gzs) - 384*(V_2 * Gzs) .*cos.(V_2/2*Gzs) + 768*sin.(V_2/2*Gzs))]
+    uuu = Gzs*l.R
+    IPvec = [sin.(uuu)./uuu,
+             1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
+             1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu)),
+             1im ./ uuu.^4 .* ((6*uuu .- uuu.^3).*cos.(uuu) + (3*uuu.^2 .- 6).*sin.(uuu)),
+             1   ./ uuu.^5 .* (4*(uuu.^3 .-6*uuu).*cos.(uuu) + (uuu.^4 .- 12*uuu.^2 .+ 24).*sin.(uuu))]
+    # IPvec = [sinc.(V_2/2/pi * Gzs),
+    #     1im ./(V_2 * Gzs).^2 .* (-2*(V_2 * Gzs)    .*cos.(V_2/2*Gzs) + 4*                  sin.(V_2/2*Gzs)),
+    #     1 ./(V_2 * Gzs).^3   .* (2*(V_2 * Gzs).^2  .*sin.(V_2/2*Gzs) + 8*(V_2 * Gzs)     .*cos.(V_2/2*Gzs) - 16*                 sin.(V_2/2*Gzs)),
+    #     1im ./(V_2 * Gzs).^4 .* (-2*(V_2 * Gzs).^3 .*cos.(V_2/2*Gzs) + 12*(V_2 * Gzs).^2 .*sin.(V_2/2*Gzs) + 48*(V_2 * Gzs)    .*cos.(V_2/2*Gzs) - 96*               sin.(V_2/2*Gzs)),
+    #     1 ./(V_2 * Gzs).^5   .* (2*(V_2 * Gzs).^4  .*sin.(V_2/2*Gzs) + 16*(V_2 * Gzs).^3 .*cos.(V_2/2*Gzs) - 96*(V_2 * Gzs).^2 .*sin.(V_2/2*Gzs) - 384*(V_2 * Gzs) .*cos.(V_2/2*Gzs) + 768*sin.(V_2/2*Gzs))]
     IPvec = [IPvec[n][i,j,k] for n in 1:5, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
     IPvec[:,l.NG+1,1,1] = [1.0,0,1/3,0,1/5]
     IPvecconj = conj.(IPvec)
@@ -421,15 +435,14 @@ function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
     if deg == 0
         IPvec = sin.(uuu)./uuu
         Qq = 0
-        IPvec = [IPvec[n][i,j,k] for n in 1:5, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-        IPvec[:,l.NG+1,1,1] = 1
+        IPvec[l.NG+1,:,:] .= 1
     elseif deg == 2
         IPvec = [sin.(uuu)./uuu,
                  1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
                  1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu))]
         Qq = [1.0+0im 0 1/3;0 1/3 0;1/3 0 1/5]
-        IPvec = [IPvec[n][i,j,k] for n in 1:5, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-        IPvec[:,l.NG+1,1,1] = [1.0,0,1/3]
+        IPvec = [IPvec[n][i,j,k] for n in 1:(deg+1), i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+        IPvec[:,l.NG+1,:,:] .= [1.0,0,1/3]
     elseif deg == 4
         IPvec = [sin.(uuu)./uuu,
                  1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
@@ -437,14 +450,19 @@ function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
                  1im ./ uuu.^4 .* ((6*uuu .- uuu.^3).*cos.(uuu) + (3*uuu.^2 .- 6).*sin.(uuu)),
                  1   ./ uuu.^5 .* (4*(uuu.^3 .-6*uuu).*cos.(uuu) + (uuu.^4 .- 12*uuu.^2 .+ 24).*sin.(uuu))]
         Qq = [1.0+0im 0 1/3 0 1/5;0 1/3 0 1/5 0;1/3 0 1/5 0 1/7;0 1/5 0 1/7 0;1/5 0 1/7 0 1/9]
-        IPvec = [IPvec[n][i,j,k] for n in 1:5, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-        IPvec[:,l.NG+1,1,1] = [1.0,0,1/3,0,1/5]
+        IPvec = [IPvec[n][i,j,k] for n in 1:(deg+1), i in 1:2*l.NG+1, j in 1:1, k in 1:1]
+        IPvec[:,l.NG+1,:,:] .= [1.0,0,1/3,0,1/5]
     else
         println("specified polynomial degree not implemented")
     end
     IPvecconj = conj.(IPvec)
-    @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
-    summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    if deg == 0
+        Pp = IPvec.*IPvecconj
+        summands = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    else
+        @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
+        summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    end
     latsum = sum(summands)
     EVPmatrix = kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
     return EVPmatrix
