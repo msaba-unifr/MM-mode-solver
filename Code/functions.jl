@@ -202,7 +202,7 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     if deg == 0
         IPvec = sin.(uuu)./uuu
         IPvec[l.NG+1,:,:] .= 0
-        Qq = 0
+        Qq = 1
         Pp0 = 1
     elseif deg == 2
         IPvec = [sin.(uuu)./uuu,
@@ -434,7 +434,7 @@ function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
     uuu = Gzs*l.R
     if deg == 0
         IPvec = sin.(uuu)./uuu
-        Qq = 0
+        Qq = 1
         IPvec[l.NG+1,:,:] .= 1
     elseif deg == 2
         IPvec = [sin.(uuu)./uuu,
