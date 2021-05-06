@@ -285,17 +285,17 @@ function getCuEP(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     Ss0 = ζ * sum(Ss0)
     e3 = [0,0,1]
     @einsum kparGxe3[i,j,k,n,m] := kparG[i,k,n,m]*e3[j]
-    Rr1 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx .- kparGxe3 .- conj.(kparGxe3))[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    Rr1 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx .- kparGxe3 .- transpose.(conj.(kparGxe3)))[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
     Ss1 = (k_1^2 - kpar²)./(k_1^2 .- kparG²) .* (2*Gzs ./ (k_1^2 .- kparG²)) .* Rr1
     Ss1 = ζ * sum(Ss1)
     Rr2 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx)[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
     Ss2 = 1 ./(k_1^2 .- kparG²) .* Rr2
     Ss2 = ζ * sum(Ss2)
-    Rr3 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx .- kparGxe3 .- conj.(kparGxe3))[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+    Rr3 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx .- kparGxe3 .- transpose.(conj.(kparGxe3)))[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
     Ss3 = 1 ./(k_1^2 .- kparG²) .* (2*Gzs ./ (k_1^2 .- kparG²)) .* Rr3
     Ss3 = ζ * sum(Ss3)
     Mm0 = (k_1^2-kpar²) * kron(Qq,one(ones(3,3))) - ζ* kron(Pp0,k_1^2*one(ones(3,3))-kparTx) - ζ * Ss0
-    Mm1 = ζ* kron(Pp0,kpar*[0,0,1]' .- conj.(kpar*[0,0,1]')) - ζ * Ss1
+    Mm1 = ζ* kron(Pp0,kpar*[0,0,1]' .- transpose(conj.(kpar*[0,0,1]'))) - ζ * Ss1
     Mm2 = -kron(Qq,one(ones(3,3))) .+ ζ * kron(Pp0,[0 0 0;0 0 0;0 0 1]) .+ Ss2
     Mm3 = Ss3
 
