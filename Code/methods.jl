@@ -1,4 +1,5 @@
 include("functions.jl")
+include("integration.jl")
 
 function Init_Workspace(; wl = 600, φ = 45, θ = 45, NG = 10, ϵ_bg = 1 + 0im,
         ϵ_m = "Ag_JC_nk.txt", A = [30/2 30; sqrt(3)*30/2 0],
@@ -147,4 +148,42 @@ function update_dependencies!(; kwargs...)
             global l = Lattice2D(l.NG, l.A, kwargs[var], l.R)
         end
     end
+end
+
+function BM()
+
+    BM_times = zeros(7)
+    ply_file = string(pwd(), "\\example1.ply")
+    Hnr = zeros(Float64, (2, 2))
+    Hnr[end,end] = 1
+    v = [0.0, 0, 1im]
+    for ngp in 2:8
+        update_dependencies!(NG = 2^ngp)
+        t0 = time()
+        numericalIP_corr = [nInnerProd(ply_file, Hnr,  Gs[:,i,j,k]) for i in 1:2*l.NG+1,
+            j in 1:2*l.NG+1, k in 1:1]
+        BM_times[ngp-1] = time()-t0
+    end
+    return BM_times
+end
+
+function BM_broadcast(vs)::Array{ComplexF64,3}
+
+    numericalIP = zeros(ComplexF64, size(vs))
+    ply_file = string(pwd(), "\\example1.ply")
+    Hnr = zeros(Float64, (2, 2))
+    Hnr[end,end] = 1
+    v = [0.0, 0, 1im]
+    numericalIP = nInnerProd.((ply_file,), (Hnr,), vs)
+    return numericalIP
+end
+
+function BM_listc()::Array{ComplexF64,3}
+
+    ply_file = string(pwd(), "\\example1.ply")
+
+    Hnr = zeros(Float64, (2, 2))
+    Hnr[1,1] = 1
+    numericalIP = nInnerProd(ply_file, Hnr, Gs)
+    return numericalIP
 end

@@ -53,10 +53,36 @@ function InnerProd(x;exclude_DC=false)
         if exclude_DC
             return 0
         else
-            return l.V_2  # 2 * (1/2) * l.V_2
+            return l.V_2 # 2 * (1/2) * l.V_2
         end
     end
     return 2 * l.V_2 / x * besselj(1,x)
+end
+
+function nInnerProd(ply_file, Hnr, Gs; exclude_DC=false)
+
+    ply = load_ply(ply_file)
+
+    ver_x = ply["vertex"]["x"]
+    ver_y = ply["vertex"]["y"]
+    ver_z = ply["vertex"]["z"]
+    faces = ply["face"]["vertex_indices"]
+
+    nInnerP = zeros(ComplexF64, (2*l.NG+1, 2*l.NG+1, 1))
+
+    for i in 1:2*l.NG+1, j in 1:2*l.NG+1, k in 1:1
+        if sum(view(Gs,:,i,j,k)) == 0
+            if exclude_DC
+                nInnerP[i,j,k] = 0
+            else
+                nInnerP[i,j,k] = l.V_2
+            end
+            continue
+        end
+        nInnerP[i,j,k] = gabard_integral_2D(Hnr, view(Gs,:,i,j,k),
+            ver_x, ver_y, ver_z, faces)
+    end
+    return nInnerP
 end
 
 # In the 2D case:
