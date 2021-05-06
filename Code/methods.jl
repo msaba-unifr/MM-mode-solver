@@ -5,7 +5,7 @@ function Init_Workspace(; wl = 600, φ = 45, θ = 45, NG = 10, ϵ_bg = 1 + 0im,
         Rad = 10.0, V_2 = pi*10.0^2, mmdim = 1)
     if mmdim == 1
         global l = Lattice1D(NG,a,V_2,Rad)
-    elseif mmdim = V_2
+    elseif mmdim == V_2
         global l = Lattice2D(NG,A,V_2,Rad)
     end
     #Creating G_space
