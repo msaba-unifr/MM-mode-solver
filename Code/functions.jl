@@ -509,7 +509,7 @@ function solve_analytical(params,lattice,TE=true)
     Up = (cos(k1*d1)+1im/2*(Z1/Z2+Z2/Z1)*sin(k1*d1))*exp( 1im*k2*d2)
     Um = (cos(k1*d1)-1im/2*(Z1/Z2+Z2/Z1)*sin(k1*d1))*exp(-1im*k2*d2)
     V = 1im/2*(Z2/Z1-Z1/Z2)*sin(k1*d1)
-    T = [Up -V; V Um]
+    T = [Up V; -V Um]
     return eigen(T)
 end
 
@@ -522,12 +522,13 @@ function getD2field_poly2(k,c,lattice,z)
 end
 
 function getD2field_poly4(k,c,lattice,z)
+    znorm = l.R
     if abs(c[1]) > abs(c[2])
-        return (1+c[4]/c[1]*z/l.R+c[7]/c[1]*(z/l.R)^2
-        +c[10]/c[1]*(z/l.R)^3+c[13]/c[1]*(z/l.R)^4)*exp(1im*k*z)
+        return (1+c[4]/c[1]*(z/znorm)+c[7]/c[1]*(z/znorm)^2
+        +c[10]/c[1]*(z/znorm)^3+c[13]/c[1]*(z/znorm)^4)*exp(1im*k*z)
     else
-        return (1+c[5]/c[2]*z/l.R+c[8]/c[2]*(z/l.R)^2
-        +c[11]/c[2]*(z/l.R)^3+c[14]/c[2]*(z/l.R)^4)*exp(1im*k*z)
+        return (1+c[5]/c[2]*z/znorm+c[8]/c[2]*(z/znorm)^2
+        +c[11]/c[2]*(z/znorm)^3+c[14]/c[2]*(z/znorm)^4)*exp(1im*k*z)
     end
 end
 
