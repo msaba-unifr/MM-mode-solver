@@ -8,21 +8,26 @@ using NonlinearEigenproblems
 include("methods.jl")
 
 #Parameters set by the user
-wl = 350
+wl = 600
 φ = 90   #do not change in 1D for fixed y-z plane of incidence
-θ = 80
+θ = 0
 NG = 100
 ϵ_bg = 1 + 0im
 mat_file = "Ag_JC_nk.txt"
 a = 30.0                            #lattice constant
 # IF Ω₂ = {r : |r| < R, r ∈ ℝ², R ∈ ℝ} (i.e. disks/cylinders)
+A = [30/2 30; sqrt(3)*30/2 0]
 Rad = 10.0
-V_2 = 2*Rad                              #Volume definition required
-mmdim = 1
+mmdim = 2
+if mmdim == 1
+    V_2 = 2*Rad                              #Volume definition required
+elseif mmdim == 2
+    V_2 = pi*Rad^2
+end
 
 #Code starts here
 Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
-    ϵ_m = mat_file, A = a, Rad = Rad, V_2 = V_2, mmdim = mmdim)
+    ϵ_m = mat_file, A = A, Rad = Rad, V_2 = V_2, mmdim = mmdim)
 
 o_vec = zeros(ComplexF64, (3,1))
 𝓗invs = getHinv(Gs,o_vec, p.k_1)
