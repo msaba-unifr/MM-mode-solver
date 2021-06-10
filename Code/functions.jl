@@ -136,6 +136,38 @@ function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
+function polyxDiskIP(uuu,degmn)
+    uuy = uuu[2,:,:,:]
+    uuz = uuu[3,:,:,:]
+    m=degmn[1]
+    n=degmn[2]
+    cαm, cβn = RecurCoef(degmn)
+    Summands = zeros((ceil(Int,m/2)+1,ceil(Int,n/2),3,2*l.NG+1,2*l.NG+1,1))
+    for a in 0:ceil(Int,m/2)
+        for b in 0:ceil(Int,n/2)
+            Sumands[a,b] = (-1)^(a+b) * cαm[m+1,a+1] * cβn[n+1,b+1] * uuy^(m-2a):*uuz^(n-2b)./uuu^(m+n-a-b) .* BessQnoDC.(m+n-a-b+1,uuu)
+    return dropdims(sum(Summands,dims=1:2),dims=(1,2))
+
+function RecurCoef(degmn)
+    mcoef = zeros((degmn[1],ceil(Int,degmn[1]/2)))
+    ncoef = zeros((degmn[2],ceil(Int,degmn[2]/2)))
+    cαm[1,:].=0
+    cβn[1,:].=0
+    cαm[:,1].=1
+    cβn[:,1].=1
+    for i in 2:degmn[1]
+        for j in 2:ceil(Int,degmn[1]/2)
+            cαm[i,j] = cαm[i-1,j] + (i-2-2*(j-2))*cαm[i-1,j-1]
+        end
+    end
+    for i in 2:degmn[1]
+        for j in 2:ceil(Int,degmn[1]/2)
+            cβn[i,j] = cβn[i-1,j] + (i-2-2*(j-2))*cβn[i-1,j-1]
+        end
+    end
+    return cαm, cβn
+end
+
 function IPcoefficients(uuu,deg)
     Qqlen = (deg[1]+1)*(deg[2]+1)
     degreelist = zeros(Int8,(2,Qqlen))
@@ -162,14 +194,26 @@ function IPcoefficients(uuu,deg)
             end
         end
     end
+
+    IPvec = zeros(Qqlen)
+    for i in 1:Qqlen
+        degmn = degreelist[:,i]
+        IPvec[i] = 2*l.V_2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,degmn)
+    end
+
+    Pp0 = Qq[1,:]*transpose(Qq[1,:])
+    
     return IPvec,Qq,Pp0
 end
 
 function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
     absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
+    Gys = Gs[2,:,:,:]
     Gzs = Gs[3,:,:,:]
-    uuu = Gzs*l.R
+    uuu = Gs*l.R
+    uuy = Gys*l.R
+    uuz = Gzs*l.R
     IPvec,Qq,Pp0 = IPcoefficients(uuu,deg)
     IPvecconj = conj.(IPvec)
     if deg == 0
