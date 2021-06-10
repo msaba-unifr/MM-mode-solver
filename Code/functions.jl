@@ -142,15 +142,18 @@ function polyxDiskIP(uuu,degmn)
     m=degmn[1]
     n=degmn[2]
     cαm, cβn = RecurCoef(degmn)
-    Summands = zeros((ceil(Int,m/2)+1,ceil(Int,n/2),3,2*l.NG+1,2*l.NG+1,1))
-    for a in 0:ceil(Int,m/2)
-        for b in 0:ceil(Int,n/2)
-            Sumands[a,b] = (-1)^(a+b) * cαm[m+1,a+1] * cβn[n+1,b+1] * uuy^(m-2a):*uuz^(n-2b)./uuu^(m+n-a-b) .* BessQnoDC.(m+n-a-b+1,uuu)
+    Summands = zeros((ceil(Int,m/2)+1,ceil(Int,n/2)+1,2*l.NG+1,2*l.NG+1,1))
+    for α in 0:ceil(Int,m/2)
+        for β in 0:ceil(Int,n/2)
+            Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cβn[n+1,β+1] * uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .* BessQnoDC.(m+n-α-β+1,uuu)
+        end
+    end
     return dropdims(sum(Summands,dims=1:2),dims=(1,2))
+end
 
 function RecurCoef(degmn)
-    mcoef = zeros((degmn[1],ceil(Int,degmn[1]/2)))
-    ncoef = zeros((degmn[2],ceil(Int,degmn[2]/2)))
+    cαm = zeros((degmn[1]+1,ceil(Int,degmn[1]/2)+1))
+    cβn = zeros((degmn[2]+1,ceil(Int,degmn[2]/2)+1))
     cαm[1,:].=0
     cβn[1,:].=0
     cαm[:,1].=1
@@ -160,8 +163,8 @@ function RecurCoef(degmn)
             cαm[i,j] = cαm[i-1,j] + (i-2-2*(j-2))*cαm[i-1,j-1]
         end
     end
-    for i in 2:degmn[1]
-        for j in 2:ceil(Int,degmn[1]/2)
+    for i in 2:degmn[2]
+        for j in 2:ceil(Int,degmn[2]/2)
             cβn[i,j] = cβn[i-1,j] + (i-2-2*(j-2))*cβn[i-1,j-1]
         end
     end
@@ -190,20 +193,20 @@ function IPcoefficients(uuu,deg)
             elseif isodd(n)
                 Qq[i,j] = 0
             else
-                Qq[i,j] = l.V_2 * l.R^(m+n) * 2*doublefactorial(m-1)*doublefactorial(n-1)/ ( (m+n+2) * 2^((m+n)/2) * ((m+n)/2) )
+                Qq[i,j] = l.V_2 * l.R^(m+n) * 2*doublefactorial(m-1)*doublefactorial(n-1)/ ( (m+n+2) * 2^((m+n)/2) * factorial((m+n)/2) )
             end
         end
     end
 
-    IPvec = zeros(Qqlen)
+    IPvec = zeros(ComplexF64,(Qqlen,2*l.NG+1,2*l.NG+1,1))
     for i in 1:Qqlen
         degmn = degreelist[:,i]
-        IPvec[i] = 2*l.V_2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,degmn)
+        IPvec[i,:,:,:] = 2*l.V_2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,degmn)
     end
 
     Pp0 = Qq[1,:]*transpose(Qq[1,:])
-    
-    return IPvec,Qq,Pp0
+
+    return Qq,Pp0,IPvec
 end
 
 function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
@@ -211,7 +214,7 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
     Gys = Gs[2,:,:,:]
     Gzs = Gs[3,:,:,:]
-    uuu = Gs*l.R
+    uuu = absGs*l.R
     uuy = Gys*l.R
     uuz = Gzs*l.R
     IPvec,Qq,Pp0 = IPcoefficients(uuu,deg)
