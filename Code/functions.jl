@@ -136,9 +136,7 @@ function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function polyxDiskIP(uuu,degmn)
-    uuy = uuu[2,:,:,:]
-    uuz = uuu[3,:,:,:]
+function polyxDiskIP(uuu,uuy,uuz,degmn)
     m=degmn[1]
     n=degmn[2]
     cαm, cβn = RecurCoef(degmn)
@@ -171,15 +169,15 @@ function RecurCoef(degmn)
     return cαm, cβn
 end
 
-function IPcoefficients(uuu,deg)
+function IPcoefficients(uuu,uuy,uuz,deg)
     Qqlen = (deg[1]+1)*(deg[2]+1)
     degreelist = zeros(Int8,(2,Qqlen))
     Qq = zeros((Qqlen,Qqlen))
     i=1
     while i <= Qqlen
-        for n in 1:deg[2]+1
-            for m in 1:deg[1]+1
-                degreelist[:,i]=[m-1,n-1]
+        for n in 0:deg[2]
+            for m in 0:deg[1]
+                degreelist[:,i]=[m,n]
                 i += 1
             end
         end
@@ -201,7 +199,7 @@ function IPcoefficients(uuu,deg)
     IPvec = zeros(ComplexF64,(Qqlen,2*l.NG+1,2*l.NG+1,1))
     for i in 1:Qqlen
         degmn = degreelist[:,i]
-        IPvec[i,:,:,:] = 2*l.V_2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,degmn)
+        IPvec[i,:,:,:] = 2*l.V_2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,uuy,uuz,degmn)
     end
 
     Pp0 = Qq[1,:]*transpose(Qq[1,:])
@@ -217,7 +215,7 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     uuu = absGs*l.R
     uuy = Gys*l.R
     uuz = Gzs*l.R
-    IPvec,Qq,Pp0 = IPcoefficients(uuu,deg)
+    IPvec,Qq,Pp0 = IPcoefficients(uuu,uuy,uuz,deg)
     IPvecconj = conj.(IPvec)
     if deg == 0
         Pp = IPvec.*IPvecconj
