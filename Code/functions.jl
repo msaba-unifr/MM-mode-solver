@@ -140,9 +140,9 @@ function polyxDiskIP(uuu,uuy,uuz,degmn)
     m=degmn[1]
     n=degmn[2]
     cαm, cβn = RecurCoef(degmn)
-    Summands = zeros((ceil(Int,m/2)+1,ceil(Int,n/2)+1,2*l.NG+1,2*l.NG+1,1))
-    for α in 0:ceil(Int,m/2)
-        for β in 0:ceil(Int,n/2)
+    Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1,2*l.NG+1,2*l.NG+1,1))
+    for α in 0:floor(Int,m/2)
+        for β in 0:floor(Int,n/2)
             Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cβn[n+1,β+1] * uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .* BessQnoDC.(m+n-α-β+1,uuu)
         end
     end
@@ -150,19 +150,19 @@ function polyxDiskIP(uuu,uuy,uuz,degmn)
 end
 
 function RecurCoef(degmn)
-    cαm = zeros((degmn[1]+1,ceil(Int,degmn[1]/2)+1))
-    cβn = zeros((degmn[2]+1,ceil(Int,degmn[2]/2)+1))
+    cαm = zeros((degmn[1]+1,floor(Int,degmn[1]/2)+1))
+    cβn = zeros((degmn[2]+1,floor(Int,degmn[2]/2)+1))
     cαm[1,:].=0
     cβn[1,:].=0
     cαm[:,1].=1
     cβn[:,1].=1
     for i in 2:degmn[1]
-        for j in 2:ceil(Int,degmn[1]/2)
+        for j in 2:floor(Int,degmn[1]/2)
             cαm[i,j] = cαm[i-1,j] + (i-2-2*(j-2))*cαm[i-1,j-1]
         end
     end
     for i in 2:degmn[2]
-        for j in 2:ceil(Int,degmn[2]/2)
+        for j in 2:floor(Int,degmn[2]/2)
             cβn[i,j] = cβn[i-1,j] + (i-2-2*(j-2))*cβn[i-1,j-1]
         end
     end
@@ -215,14 +215,15 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     uuu = absGs*l.R
     uuy = Gys*l.R
     uuz = Gzs*l.R
-    IPvec,Qq,Pp0 = IPcoefficients(uuu,uuy,uuz,deg)
+    Qq,Pp0,IPvec = IPcoefficients(uuu,uuy,uuz,deg)
     IPvecconj = conj.(IPvec)
-    if deg == 0
+    if deg[1]+deg[2] == 0
+        IPvec = dropdims(IPvec,dims=1)
         Pp = IPvec.*IPvecconj
-        Kk = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+        Kk = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     else
         @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
-        Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+        Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     end
     Kk = sum(Kk)
     Kk = kron(Qq,one(ones(3,3))) - (k_1^2-k_2^2)* V_2/V * Kk
@@ -231,8 +232,8 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     A0 = ζ * kron(Pp0,(k_1^2 * I - k_x^2 *[1.0 0 0; 0 0 0; 0 0 0] -
         k_y^2 *[0.0 0 0; 0 1 0; 0 0 0] - k_x * k_y *
         [0.0 1 0; 1 0 0; 0 0 0])) - (k_1^2 - k_x^2 - k_y^2) * Kk
-    QEVP_LH = [A1 A0; -I zeros(3*(deg+1),3*(deg+1))]
-    QEVP_RH = -[A2 zeros(3*(deg+1),3*(deg+1)); zeros(3*(deg+1),3*(deg+1)) I]
+    QEVP_LH = [A1 A0; -I zeros(size(A2))]
+    QEVP_RH = -[A2 zeros(size(A2)); zeros(size(A2)) I]
     return eigen(QEVP_LH,QEVP_RH)
 end
 

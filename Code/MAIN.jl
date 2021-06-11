@@ -11,7 +11,7 @@ include("methods.jl")
 wl = 600
 φ = 90   #do not change in 1D for fixed y-z plane of incidence
 θ = 0
-NG = 10
+NG = 1
 ϵ_bg = 1 + 0im
 mat_file = "Ag_JC_nk.txt"
 a = 30.0                            #lattice constant
