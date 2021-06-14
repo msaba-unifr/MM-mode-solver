@@ -144,6 +144,7 @@ function polyxDiskIP(uuu,uuy,uuz,degmn)
     for α in 0:floor(Int,m/2)
         for β in 0:floor(Int,n/2)
             Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cβn[n+1,β+1] * uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .* BessQnoDC.(m+n-α-β+1,uuu)
+            Summands[:,:,l.NG+1,l.NG+1,:] .= 0
         end
     end
     return dropdims(sum(Summands,dims=1:2),dims=(1,2))

@@ -31,43 +31,42 @@ Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
 
 o_vec = zeros(ComplexF64, (3,1))
 𝓗invs = getHinv(Gs,o_vec, p.k_1)
-
-ksCuEP,csCuEP = getCuEP(4,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
-ksQEP,csQEP = getQEPpolyx(4,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,l.V_2, l.V)
+deg = (0,0)
+ks2Dpolyx,cs2Dpolyx = getQEPpolyx(deg, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
 ksQEP_old,csQEP_old = getInitGuess(IP²_noDC, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
 
-ksolspoly4,csolspoly4 = getpolyxMode(4)
-ksolspoly2,csolspoly2 = getpolyxMode(2)
-ksolspolyx0,csolspolyx0 = getpolyxMode(0)
-ksols,csols = getMode()
+# ksolspoly4,csolspoly4 = getpolyxMode(4)
+# ksolspoly2,csolspoly2 = getpolyxMode(2)
+# ksolspolyx0,csolspolyx0 = getpolyxMode(0)
+# ksols,csols = getMode()
+#
+# lam_ana,v_ana = solve_analytical(p,l,0)
+# k_ana = log.(lam_ana[1])/1im/a
+#
+# Nz = 100
+# QEP_field = [getD2field_poly2(ksQEP[16],csQEP[:,16],l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
+# NLEVP2_field = [getD2field_poly2(ksolspoly2[2],csolspoly2[:,2],l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
+# NLEVP4_field = [getD2field_poly4(ksolspoly4[2],csolspoly4[:,2],l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
+# ana_field = [getD2field_ana(lam_ana,v_ana,p,l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
 
-lam_ana,v_ana = solve_analytical(p,l,0)
-k_ana = log.(lam_ana[1])/1im/a
-
-Nz = 100
-QEP_field = [getD2field_poly2(ksQEP[16],csQEP[:,16],l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
-NLEVP2_field = [getD2field_poly2(ksolspoly2[2],csolspoly2[:,2],l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
-NLEVP4_field = [getD2field_poly4(ksolspoly4[2],csolspoly4[:,2],l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
-ana_field = [getD2field_ana(lam_ana,v_ana,p,l,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]
-
-println()
-println("kQEPpoly4,kpoly4 = ")
-println(ksQEP[16])
-println(ksolspoly4[1])
-println("kana = ")
-println(k_ana)
-print("eps_k_QEP = ")
-println(abs(1 - ksQEP[16]/k_ana))
-print("eps_k_kNLEPpoly2 = ")
-println(abs(1 - ksolspoly2[2]/k_ana))
-print("eps_k_NLEPpoly4 = ")
-println(abs(1 - ksolspoly4[2]/k_ana))
-print("eps_field_QEP = ")
-println(norm((1 .- QEP_field./ana_field))/sqrt(Nz))
-print("eps_field_kNLEPpoly2 = ")
-println(norm((1 .- NLEVP2_field./ana_field))/sqrt(Nz))
-print("eps_field_NLEPpoly4 = ")
-println(norm((1 .- NLEVP4_field./ana_field))/sqrt(Nz))
+# println()
+# println("kQEPpoly4,kpoly4 = ")
+# println(ksQEP[16])
+# println(ksolspoly4[1])
+# println("kana = ")
+# println(k_ana)
+# print("eps_k_QEP = ")
+# println(abs(1 - ksQEP[16]/k_ana))
+# print("eps_k_kNLEPpoly2 = ")
+# println(abs(1 - ksolspoly2[2]/k_ana))
+# print("eps_k_NLEPpoly4 = ")
+# println(abs(1 - ksolspoly4[2]/k_ana))
+# print("eps_field_QEP = ")
+# println(norm((1 .- QEP_field./ana_field))/sqrt(Nz))
+# print("eps_field_kNLEPpoly2 = ")
+# println(norm((1 .- NLEVP2_field./ana_field))/sqrt(Nz))
+# print("eps_field_NLEPpoly4 = ")
+# println(norm((1 .- NLEVP4_field./ana_field))/sqrt(Nz))
 
 # E = [getEfield_9D(ksols[1],csols[:,1],l,p,z) for z in LinRange(-l.V_2/2,l.V_2/2,Nz)]/getEfield_9D(ksols[1],csols[:,1],l,p,0)
 
