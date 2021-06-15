@@ -203,7 +203,7 @@ function IPcoefficients(uuu,uuy,uuz,deg)
         IPvec[i,:,:,:] = 2*l.V_2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,uuy,uuz,degmn)
     end
 
-    Pp0 = Qq[1,:]*transpose(Qq[1,:])
+    Pp0 = Qq[1,:]*Qq[1,:]'
 
     return Qq,Pp0,IPvec
 end
