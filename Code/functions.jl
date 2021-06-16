@@ -192,7 +192,7 @@ function IPcoefficients(uuu,uuy,uuz,deg)
             elseif isodd(n)
                 Qq[i,j] = 0
             else
-                Qq[i,j] = l.V_2 * l.R^(m+n) * 2*doublefactorial(m-1)*doublefactorial(n-1)/ ( (m+n+2) * 2^((m+n)/2) * factorial((m+n)/2) )
+                Qq[i,j] = 2*doublefactorial(m-1)*doublefactorial(n-1)/ ( (m+n+2) * 2^((m+n)/2) * factorial((m+n)/2) )
             end
         end
     end
@@ -200,7 +200,7 @@ function IPcoefficients(uuu,uuy,uuz,deg)
     IPvec = zeros(ComplexF64,(Qqlen,2*l.NG+1,2*l.NG+1,1))
     for i in 1:Qqlen
         degmn = degreelist[:,i]
-        IPvec[i,:,:,:] = 2*l.V_2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,uuy,uuz,degmn)
+        IPvec[i,:,:,:] = 2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,uuy,uuz,degmn)
     end
 
     Pp0 = Qq[1,:]*Qq[1,:]'

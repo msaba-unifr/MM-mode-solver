@@ -16,7 +16,7 @@ NG = 1
 mat_file = "Ag_JC_nk.txt"
 a = 30.0                            #lattice constant
 # IF Ω₂ = {r : |r| < R, r ∈ ℝ², R ∈ ℝ} (i.e. disks/cylinders)
-A = [30/2 30; sqrt(3)*30/2 0]
+A = [a/2 a; sqrt(3)*a/2 0]
 Rad = 10.0
 mmdim = 2
 if mmdim == 1
