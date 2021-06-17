@@ -125,6 +125,7 @@ function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     #InitialGuess
     ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
     @einsum Mm[i,j] :=  InnerP[k,n,m] * H_inv[i,j,k,n,m]
+    println(Mm/V_2^2)
     Mm = I - k_1^2 / V_2^2 * ζ * Mm
     A2 = Mm - ζ * [0.0 0 0; 0 0 0; 0 0 1]
     A1 = -ζ * (k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0])
@@ -217,16 +218,18 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     uuy = Gys*l.R
     uuz = Gzs*l.R
     Qq,Pp0,IPvec = IPcoefficients(uuu,uuy,uuz,deg)
-    IPvecconj = conj.(IPvec)
     if deg[1]+deg[2] == 0
         IPvec = dropdims(IPvec,dims=1)
+        IPvecconj = conj.(IPvec)
         Pp = IPvec.*IPvecconj
         Kk = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     else
+        IPvecconj = conj.(IPvec)
         @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
         Kk = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     end
     Kk = sum(Kk)
+    println(Kk)
     Kk = kron(Qq,one(ones(3,3))) - (k_1^2-k_2^2)* V_2/V * Kk
     A2 = Kk - ζ * kron(Pp0,[0.0 0 0; 0 0 0; 0 0 1])
     A1 = -ζ * kron(Pp0,(k_x *[0.0 0 1; 0 0 0; 1 0 0] + k_y *[0.0 0 0; 0 0 1; 0 1 0]))
