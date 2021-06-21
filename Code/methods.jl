@@ -162,7 +162,7 @@ function getpolyxMode(deg)
     λs,vs = eigs_init.values, eigs_init.vectors
 
     ks = zeros(ComplexF64,(2))
-    cs = zeros(ComplexF64,(3*(deg+1),2))
+    cs = zeros(ComplexF64,(3*((deg[1]+1)*(deg[2]+1)),2))
     for (i, λ_val) in enumerate(λs)
 
         if real(λ_val) <= 0
@@ -172,16 +172,16 @@ function getpolyxMode(deg)
         end
         if ks[1] == 0
             ks[1] = λs[i]
-            cs[:, 1] = vs[3*(deg+1)+1:6*(deg+1), i]
+            cs[:, 1] = vs[3*((deg[1]+1)*(deg[2]+1))+1:6*((deg[1]+1)*(deg[2]+1)), i]
         else
             ks[2] = λs[i]
-            cs[:, 2] = vs[3*(deg+1)+1:6*(deg+1), i]
+            cs[:, 2] = vs[3*((deg[1]+1)*(deg[2]+1))+1:6*((deg[1]+1)*(deg[2]+1)), i]
         end
     end
 
     #Solve NLEVP for each non filtered mode
     ksols = zeros(ComplexF64,(2))
-    csols = zeros(ComplexF64,(3*(deg+1),2))
+    csols = zeros(ComplexF64,(3*((deg[1]+1)*(deg[2]+1)),2))
     for mode = 1:2
 
         # global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²

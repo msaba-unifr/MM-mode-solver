@@ -335,38 +335,23 @@ end
 function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
     k_v = [p.k_x ; p.k_y; λ_value]
     H_inv = getHinv(Gs, k_v, p.k_1)
+    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
+    Gys = Gs[2,:,:,:]
     Gzs = Gs[3,:,:,:]
-    uuu = Gzs*l.R
-    if deg == 0
-        IPvec = sin.(uuu)./uuu
-        Qq = 1
-        IPvec[l.NG+1,:,:] .= 1
-    elseif deg == 2
-        IPvec = [sin.(uuu)./uuu,
-                 1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
-                 1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu))]
-        Qq = [1.0+0im 0 1/3;0 1/3 0;1/3 0 1/5]
-        IPvec = [IPvec[n][i,j,k] for n in 1:(deg+1), i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-        IPvec[:,l.NG+1,:,:] .= [1.0,0,1/3]
-    elseif deg == 4
-        IPvec = [sin.(uuu)./uuu,
-                 1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
-                 1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu)),
-                 1im ./ uuu.^4 .* ((6*uuu .- uuu.^3).*cos.(uuu) + (3*uuu.^2 .- 6).*sin.(uuu)),
-                 1   ./ uuu.^5 .* (4*(uuu.^3 .-6*uuu).*cos.(uuu) + (uuu.^4 .- 12*uuu.^2 .+ 24).*sin.(uuu))]
-        Qq = [1.0+0im 0 1/3 0 1/5;0 1/3 0 1/5 0;1/3 0 1/5 0 1/7;0 1/5 0 1/7 0;1/5 0 1/7 0 1/9]
-        IPvec = [IPvec[n][i,j,k] for n in 1:(deg+1), i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-        IPvec[:,l.NG+1,:,:] .= [1.0,0,1/3,0,1/5]
-    else
-        println("specified polynomial degree not implemented")
-    end
-    IPvecconj = conj.(IPvec)
-    if deg == 0
+    uuu = absGs*l.R
+    uuy = Gys*l.R
+    uuz = Gzs*l.R
+    Qq,Pp0,IPvec = IPcoefficients(uuu,uuy,uuz,deg)
+    IPvec[:,l.NG+1,l.NG+1,1] = Pp0[1,:]
+    if deg[1]+deg[2] == 0
+        IPvec = dropdims(IPvec,dims=1)
+        IPvecconj = conj.(IPvec)
         Pp = IPvec.*IPvecconj
-        summands = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+        summands = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     else
+        IPvecconj = conj.(IPvec)
         @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
-        summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
+        summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     end
     latsum = sum(summands)
     EVPmatrix = kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
