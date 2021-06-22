@@ -152,17 +152,25 @@ function getpoly4Mode()
     return ksols, csols
 end
 
-function getpolyxMode(deg)
+function getpolyxMode(deg;oldQEP=false)
 
     o_vec = zeros(ComplexF64, (3,1))
     𝓗invs = getHinv(Gs,o_vec, p.k_1)
     #InitialGuess
-    eigs_init = getQEPpolyx(deg,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+    if oldQEP == true
+        eigs_init = getInitGuess(IP²_noDC,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
         l.V_2, l.V)
+        QEPdim = 3
+    else
+        eigs_init = getQEPpolyx(deg,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+        l.V_2, l.V)
+        QEPdim = 3*((deg[1]+1)*(deg[2]+1))
+    end
     λs,vs = eigs_init.values, eigs_init.vectors
 
     ks = zeros(ComplexF64,(2))
-    cs = zeros(ComplexF64,(3*((deg[1]+1)*(deg[2]+1)),2))
+    cs = zeros(ComplexF64,(QEPdim,2))
+
     for (i, λ_val) in enumerate(λs)
 
         if real(λ_val) <= 0
@@ -172,10 +180,10 @@ function getpolyxMode(deg)
         end
         if ks[1] == 0
             ks[1] = λs[i]
-            cs[:, 1] = vs[3*((deg[1]+1)*(deg[2]+1))+1:6*((deg[1]+1)*(deg[2]+1)), i]
+            cs[:, 1] = vs[QEPdim+1:2*QEPdim, i]
         else
             ks[2] = λs[i]
-            cs[:, 2] = vs[3*((deg[1]+1)*(deg[2]+1))+1:6*((deg[1]+1)*(deg[2]+1)), i]
+            cs[:, 2] = vs[QEPdim+1:2*QEPdim, i]
         end
     end
 
