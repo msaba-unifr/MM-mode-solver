@@ -33,10 +33,10 @@ Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
 o_vec = zeros(ComplexF64, (3,1))
 𝓗invs = getHinv(Gs,o_vec, p.k_1)
 
-ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=false)
+ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=true)
 ksols,csols = getMode()
 
-ks2Dpolyx,cs2Dpolyx = getQEPpolyx(polydegs, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
+ksQEP2Dpolyx,csQEP2Dpolyx = getQEPpolyx(polydegs, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
 ksQEP_old,csQEP_old = getInitGuess(IP²_noDC, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
 
 # ksolspoly4,csolspoly4 = getpolyxMode(4)
