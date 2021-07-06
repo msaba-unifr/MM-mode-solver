@@ -24,7 +24,7 @@ if mmdim == 1
 elseif mmdim == 2
     V_2 = pi*Rad^2
 end
-polydegs = (2,2) # tuple of non-negative integers
+polydegs = (0,0) # tuple of non-negative integers
 
 #Code starts here
 Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
@@ -45,10 +45,12 @@ println(ksols[2])
 println(ksolspoly[2])
 
 heatres = 100
-RErange = LinRange(0.9*real(ksolspoly[2]),1.1*real(ksolspoly[2]),heatres)
-IMrange = LinRange(0.9*imag(ksolspoly[2]),1.1*imag(ksolspoly[2]),heatres)
-heatMDet = [det(getpolyxM(polydegs,x+y*im)) for x in RErange, y in IMrange]
-heatmap(RErange,IMrange,abs.(heatMDet))
+Redel = 0.1
+Imdel = 2
+RErange = LinRange((1-Redel)*real(ksolspoly[2]),(1+Redel)*real(ksolspoly[2]),heatres)
+IMrange = LinRange((1-Imdel)*imag(ksolspoly[2]),(1+Imdel)*imag(ksolspoly[2]),heatres)
+heatMDet = [log(abs(det(getpolyxM(polydegs,x+y*im)))) for y in IMrange, x in RErange]
+heatmap(RErange,IMrange,heatMDet)
 
 
 # ksolspoly4,csolspoly4 = getpolyxMode(4)
