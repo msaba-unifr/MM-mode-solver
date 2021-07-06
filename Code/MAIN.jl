@@ -11,7 +11,7 @@ include("methods.jl")
 wl = 600
 φ = 90   #do not change in 1D for fixed y-z plane of incidence
 θ = 0
-NG = 1
+NG = 10
 ϵ_bg = 1 + 0im
 mat_file = "Ag_JC_nk.txt"
 a = 30.0                            #lattice constant
@@ -24,7 +24,7 @@ if mmdim == 1
 elseif mmdim == 2
     V_2 = pi*Rad^2
 end
-polydegs = (0,0) # tuple of non-negative integers
+polydegs = (2,2) # tuple of non-negative integers
 
 #Code starts here
 Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
@@ -38,6 +38,18 @@ ksols,csols = getMode()
 
 ksQEP2Dpolyx,csQEP2Dpolyx = getQEPpolyx(polydegs, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
 ksQEP_old,csQEP_old = getInitGuess(IP²_noDC, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
+
+println()
+println(det(getpolyxM(polydegs,ksolspoly[2])))
+println(ksols[2])
+println(ksolspoly[2])
+
+heatres = 100
+RErange = LinRange(0.9*real(ksolspoly[2]),1.1*real(ksolspoly[2]),heatres)
+IMrange = LinRange(0.9*imag(ksolspoly[2]),1.1*imag(ksolspoly[2]),heatres)
+heatMDet = [det(getpolyxM(polydegs,x+y*im)) for x in RErange, y in IMrange]
+heatmap(RErange,IMrange,abs.(heatMDet))
+
 
 # ksolspoly4,csolspoly4 = getpolyxMode(4)
 # ksolspoly2,csolspoly2 = getpolyxMode(2)
