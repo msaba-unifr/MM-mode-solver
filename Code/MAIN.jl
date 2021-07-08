@@ -24,7 +24,7 @@ if mmdim == 1
 elseif mmdim == 2
     V_2 = pi*Rad^2
 end
-polydegs = (0,0) # tuple of non-negative integers
+polydegs = (1,2) # tuple of non-negative integers
 
 #Code starts here
 Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
@@ -33,7 +33,7 @@ Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
 o_vec = zeros(ComplexF64, (3,1))
 𝓗invs = getHinv(Gs,o_vec, p.k_1)
 
-ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=true)
+ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=false)
 ksols,csols = getMode()
 
 ksQEP2Dpolyx,csQEP2Dpolyx = getQEPpolyx(polydegs, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
@@ -45,10 +45,10 @@ println(ksols[2])
 println(ksolspoly[2])
 
 heatres = 100
-Redel = 0.1
-Imdel = 2
-RErange = LinRange((1-Redel)*real(ksolspoly[2]),(1+Redel)*real(ksolspoly[2]),heatres)
-IMrange = LinRange((1-Imdel)*imag(ksolspoly[2]),(1+Imdel)*imag(ksolspoly[2]),heatres)
+REbounds = [0,0.05]
+IMbounds = [0,0.01]
+RErange = LinRange(REbounds[1],REbounds[2],heatres)
+IMrange = LinRange(IMbounds[1],IMbounds[2],heatres)
 heatMDet = [log(abs(det(getpolyxM(polydegs,x+y*im)))) for y in IMrange, x in RErange]
 heatmap(RErange,IMrange,heatMDet)
 
