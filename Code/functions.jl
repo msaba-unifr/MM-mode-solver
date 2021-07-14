@@ -139,35 +139,27 @@ end
 function polyxDiskIP(uuu,uuy,uuz,degmn)
     m=degmn[1]
     n=degmn[2]
-    cαm, cβn = RecurCoef(degmn)
+    cαm = RecurCoef(degmn)
     Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1,2*l.NG+1,2*l.NG+1,1))
     for α in 0:floor(Int,m/2)
         for β in 0:floor(Int,n/2)
-            Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cβn[n+1,β+1] * uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .* BessQnoDC.(m+n-α-β+1,uuu)
-            Summands[:,:,l.NG+1,l.NG+1,:] .= 0
+            Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] * uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .* BessQnoDC.(m+n-α-β+1,uuu)
         end
     end
+    Summands[:,:,l.NG+1,l.NG+1,:] .= 0
     return dropdims(sum(Summands,dims=1:2),dims=(1,2))
 end
 
 function RecurCoef(degmn)
-    cαm = zeros((degmn[1]+1,floor(Int,degmn[1]/2)+1))
-    cβn = zeros((degmn[2]+1,floor(Int,degmn[2]/2)+1))
+    cαm = zeros((maximum(degmn)+1,floor(Int,maximum(degmn)/2)+1))
     cαm[1,:].=0
-    cβn[1,:].=0
     cαm[:,1].=1
-    cβn[:,1].=1
-    for i in 2:degmn[1]
-        for j in 2:floor(Int,degmn[1]/2)
+    for i in 2:maximum(degmn)+1
+        for j in 2:floor(Int,maximum(degmn)/2)+1
             cαm[i,j] = cαm[i-1,j] + (i-2-2*(j-2))*cαm[i-1,j-1]
         end
     end
-    for i in 2:degmn[2]
-        for j in 2:floor(Int,degmn[2]/2)
-            cβn[i,j] = cβn[i-1,j] + (i-2-2*(j-2))*cβn[i-1,j-1]
-        end
-    end
-    return cαm, cβn
+    return cαm
 end
 
 function IPcoefficients(uuu,uuy,uuz,deg)
@@ -342,7 +334,7 @@ function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
     uuy = Gys*l.R
     uuz = Gzs*l.R
     Qq,Pp0,IPvec = IPcoefficients(uuu,uuy,uuz,deg)
-    IPvec[:,l.NG+1,l.NG+1,1] = Pp0[1,:]
+    IPvec[:,l.NG+1,l.NG+1,1] = Qq[1,:]
     if deg[1]+deg[2] == 0
         IPvec = dropdims(IPvec,dims=1)
         IPvecconj = conj.(IPvec)
@@ -354,8 +346,7 @@ function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
         summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     end
     latsum = sum(summands)
-    EVPmatrix = kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
-    return EVPmatrix
+    return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
 
 function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
