@@ -1,58 +1,60 @@
+using Printf
 using LinearAlgebra
 using Einsum
 using SpecialFunctions
 using DelimitedFiles
 using Interpolations
-using Plots
-using PyPlot
-using NonlinearEigenproblems
+#using Plots
+#using PyPlot
+#using NonlinearEigenproblems
+
+include("parameters.jl")
 include("methods.jl")
 
-#Parameters set by the user
-wl = 370
-φ = 90   #do not change in 1D for fixed y-z plane of incidence
-θ = 0
-NG = 200
-ϵ_bg = 1 + 0im
-mat_file = "Ag_JC_nk.txt"
-a = 30.0                            #lattice constant
+#Parameters set by the user (lengths in nm, angles in degrees)
+λ = 370     #wavelength in nm
+φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
+θ = 0       #polar angle of incidence
+NG = 200    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+ϵ_bg = 1 + 0im  #permittivity of background medium
+mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
+a = 30.0    #lattice constant
 # IF Ω₂ = {r : |r| < R, r ∈ ℝ², R ∈ ℝ} (i.e. disks/cylinders)
-A = [a/2 a; sqrt(3)*a/2 0]
-#A = [a 0; 0 a]
-Rad = 10.0
-mmdim = 2
+A = [a/2 a; sqrt(3)*a/2 0]  #real space lattice matrix (see Lattice struct in parameters.jl)
+Rad = 10.0  #radius of the d-sphere
+mmdim = 2   #dimension d of the lattice
 if mmdim == 1
     V_2 = 2*Rad                              #Volume definition required
 elseif mmdim == 2
     V_2 = pi*Rad^2
+    polydegs = (1,1)    #maximum degrees (N,M) of polynomial to approximate the current in the d-sphere c=
 end
-polydegs = (3,3) # tuple of non-negative integers
 
 #Code starts here
-Init_Workspace(wl = wl, φ = φ, θ = θ, NG = NG, ϵ_bg = ϵ_bg,
-    ϵ_m = mat_file, A = A, Rad = Rad, V_2 = V_2, mmdim = mmdim)
+println()
+@printf("Starting program with NG = %d.\n",NG)
+t0=time()
+Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
+    ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
+@printf("Init workspace took %f minutes.\n",(time()-t0)/60); t1=time()
 
-o_vec = zeros(ComplexF64, (3,1))
-𝓗invs = getHinv(Gs,o_vec, p.k_1)
+ksols,csols = getpolyxMode((0,0))
+@printf("Polydegs=(0,0) took %f minutes.\n",(time()-t1)/60); t1=time()
 
 ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=false)
-ksols,csols = getMode()
+@printf("Polydegs=(%d,%d) took %f minutes.\n\n",polydegs[1],polydegs[2],(time()-t1)/60)
 
-ksQEP2Dpolyx,csQEP2Dpolyx = getQEPpolyx(polydegs, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
-ksQEP_old,csQEP_old = getInitGuess(IP²_noDC, 𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y, l.V_2, l.V)
+@printf("Polydegs = (0,0) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",
+    real(ksols[1]),imag(ksols[1]),real(ksols[2]),imag(ksols[2]))
+@printf("Polydegs = (%d,%d) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",polydegs[1],polydegs[2],
+    real(ksolspoly[1]),imag(ksolspoly[1]),real(ksolspoly[2]),imag(ksolspoly[2]))
 
-println()
-println(polydegs)
-println(det(getpolyxM(polydegs,ksolspoly[2])))
-println(ksols[2])
-println(ksolspoly[2])
-
-eigs = eigen(getpolyxM(polydegs,ksolspoly[2]),sortby=x->abs(x))
-println()
-println(abs.(eigs.values))
-for i in 0:convert(Int,length(eigs.values)/3)-1
-    println(abs.(eigs.vectors[1+3*i:3+3*i,1]))
-end
+#eigs = eigen(getpolyxM(polydegs,ksolspoly[2]),sortby=x->abs(x))
+#println()
+#println(abs.(eigs.values))
+#for i in 0:convert(Int,length(eigs.values)/3)-1
+#    println(abs.(eigs.vectors[1+3*i:3+3*i,1]))
+#end
 
 #pyplot()
 #res = 100
