@@ -12,6 +12,8 @@ function Init_Workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
     global Gs = getGspace(mmdim)
     global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,
         exclude_DC=true),dims=1).^2
+    global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad),dims=1)
+    global IP² = IP.^2
 
     #Interpolating (n,k) data from txt file
     if typeof(ϵ_2) == String
