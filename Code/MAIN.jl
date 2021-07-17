@@ -63,6 +63,13 @@ for (nl,wl) in enumerate(wlsweep)
     end
 end
 
+f_v = 3e5 ./ collect(wlsweep)
+bands_path = string(pwd(), "\\Data\\BS_R10_90-0_poly22.dat")
+open(bands_path, "w") do io
+    write(io, "Frequency Re(k1) Im(k1) Re(k2) Im(k2)\n")
+    writedlm(io, hcat(real.(f_v), real.(kmodes[:,1]), imag.(kmodes[:,1]), real.(kmodes[:,2]), imag(kmodes[:,2])))
+end
+
 #eigs = eigen(getpolyxM(polydegs,ksolspoly[2]),sortby=x->abs(x))
 #println()
 #println(abs.(eigs.values))
