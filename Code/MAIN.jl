@@ -16,7 +16,7 @@ include("deprecated.jl")
 λ = 370     #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
-NG = 300    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+NG = 100    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
 ϵ_bg = 1 + 0im  #permittivity of background medium
 mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
 a = 30.0    #lattice constant
