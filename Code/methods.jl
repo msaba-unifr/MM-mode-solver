@@ -21,7 +21,7 @@ function Init_Workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
         ϵ_2 = (itp1.(λ ./ 1000) + itp2.(λ ./ 1000) * 1im).^2
     end
 
-    global p = Parameters(wl, φ, θ, ϵ_1, ϵ_2)
+    global p = Parameters(λ, φ, θ, ϵ_1, ϵ_2)
     return
 end
 
