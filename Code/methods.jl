@@ -10,6 +10,8 @@ function Init_Workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
     end
     #Creating G_space
     global Gs = getGspace(mmdim)
+    global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*Rad,
+        exclude_DC=true),dims=1).^2
 
     #Interpolating (n,k) data from txt file
     if typeof(ϵ_2) == String
