@@ -10,12 +10,13 @@ using Interpolations
 
 include("parameters.jl")
 include("methods.jl")
+include("deprecated.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
 λ = 370     #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
-NG = 200    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+NG = 300    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
 ϵ_bg = 1 + 0im  #permittivity of background medium
 mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
 a = 30.0    #lattice constant
@@ -27,7 +28,7 @@ if mmdim == 1
     V_2 = 2*Rad                              #Volume definition required
 elseif mmdim == 2
     V_2 = pi*Rad^2
-    polydegs = (1,1)    #maximum degrees (N,M) of polynomial to approximate the current in the d-sphere c=
+    polydegs = (2,2)    #maximum degrees (N,M) of polynomial to approximate the current in the d-sphere c=
 end
 
 #Code starts here
@@ -48,6 +49,19 @@ ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=false)
     real(ksols[1]),imag(ksols[1]),real(ksols[2]),imag(ksols[2]))
 @printf("Polydegs = (%d,%d) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",polydegs[1],polydegs[2],
     real(ksolspoly[1]),imag(ksolspoly[1]),real(ksolspoly[2]),imag(ksolspoly[2]))
+
+wlsweep = 800 : -5 : 300
+kmodes = zeros(ComplexF64,(size(wlsweep,1),2))
+curvecs = zeros(ComplexF64,(3,size(wlsweep,1),2))
+sorttol = 1e-2
+for (nl,λ) in enumerate(wlsweep)
+    update_dependencies!(wl=λ)
+    println(p.lambda)
+    kmodes[nl, :], curvecs[:,nl,:] = getpolyxMode(polydegs,oldQEP=false)
+    if nl != 1 && abs(kmodes[nl, 1] - kmodes[nl-1, 1]) > abs(kmodes[nl, 1] - kmodes[nl-1, end])
+        kmodes[nl, :] = kmodes[nl, end:-1:1]
+    end
+end
 
 #eigs = eigen(getpolyxM(polydegs,ksolspoly[2]),sortby=x->abs(x))
 #println()
