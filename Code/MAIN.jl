@@ -42,7 +42,7 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
 ksols,csols = getpolyxMode((0,0))
 @printf("Polydegs=(0,0) took %f minutes.\n",(time()-t1)/60); t1=time()
 
-ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=false)
+ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=true)
 @printf("Polydegs=(%d,%d) took %f minutes.\n\n",polydegs[1],polydegs[2],(time()-t1)/60)
 
 @printf("Polydegs = (0,0) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",
@@ -50,18 +50,18 @@ ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=false)
 @printf("Polydegs = (%d,%d) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",polydegs[1],polydegs[2],
     real(ksolspoly[1]),imag(ksolspoly[1]),real(ksolspoly[2]),imag(ksolspoly[2]))
 
-wlsweep = 800 : -5 : 300
-kmodes = zeros(ComplexF64,(size(wlsweep,1),2))
-curvecs = zeros(ComplexF64,(3,size(wlsweep,1),2))
-sorttol = 1e-2
-for (nl,λ) in enumerate(wlsweep)
-    update_dependencies!(wl=λ)
-    println(p.lambda)
-    kmodes[nl, :], curvecs[:,nl,:] = getpolyxMode(polydegs,oldQEP=false)
-    if nl != 1 && abs(kmodes[nl, 1] - kmodes[nl-1, 1]) > abs(kmodes[nl, 1] - kmodes[nl-1, end])
-        kmodes[nl, :] = kmodes[nl, end:-1:1]
-    end
-end
+# wlsweep = 800 : -5 : 300
+# kmodes = zeros(ComplexF64,(size(wlsweep,1),2))
+# curvecs = zeros(ComplexF64,(3,size(wlsweep,1),2))
+# sorttol = 1e-2
+# for (nl,λ) in enumerate(wlsweep)
+#     update_dependencies!(wl=λ)
+#     println(p.lambda)
+#     kmodes[nl, :], curvecs[:,nl,:] = getpolyxMode(polydegs,oldQEP=false)
+#     if nl != 1 && abs(kmodes[nl, 1] - kmodes[nl-1, 1]) > abs(kmodes[nl, 1] - kmodes[nl-1, end])
+#         kmodes[nl, :] = kmodes[nl, end:-1:1]
+#     end
+# end
 
 #eigs = eigen(getpolyxM(polydegs,ksolspoly[2]),sortby=x->abs(x))
 #println()
