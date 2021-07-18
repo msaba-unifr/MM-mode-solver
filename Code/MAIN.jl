@@ -34,7 +34,7 @@ end
 
 #Code starts here
 println()
-@printf("Starting program with NG = %d.\n",NG)
+@printf("Starting program with NG = %d @ %s\n",NG,Dates.format(now(), "HHhMM"))
 t0=time()
 Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
@@ -72,7 +72,7 @@ for (nl,wl) in enumerate(wlsweep)
     open(bands_path, "a") do io
         writedlm(io, hcat(real.(f_v[nl]), real.(kmodes[nl,1]), imag.(kmodes[nl,1]), real.(kmodes[nl,2]), imag(kmodes[nl,2])))
     end
-    @printf("Runtime %f minutes. Time: %s\n",(time()-t1)/60,Dates.format(now(), "HHhMM"));global t1=time()
+    @printf("Runtime %f minutes, finished @ %s\n",(time()-t1)/60,Dates.format(now(), "HHhMM"));global t1=time()
 end
 
 
