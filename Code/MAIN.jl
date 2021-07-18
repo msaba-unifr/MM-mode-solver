@@ -53,7 +53,7 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
 
 wlsweep = 585 : -5 : 300
 f_v = 3e5 ./ collect(wlsweep)
-bands_path = string(pwd(), "\\Results\\BS_R10_90-0_poly22_test.dat")
+bands_path = string(pwd(), "\\Results\\BS_R10_90-0_poly22_rest.dat")
 open(bands_path, "w") do io
     write(io, "Frequency Re(k1) Im(k1) Re(k2) Im(k2)\n")
 end
