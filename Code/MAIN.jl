@@ -10,7 +10,7 @@ using Interpolations
 
 include("parameters.jl")
 include("methods.jl")
-include("deprecated.jl")
+# include("deprecated.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
 λ = 370     #wavelength in nm
@@ -52,10 +52,11 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
 
 wlsweep = 800 : -5 : 300
 kmodes = zeros(ComplexF64,(size(wlsweep,1),2))
-curvecs = zeros(ComplexF64,(3,size(wlsweep,1),2))
+curvecs = zeros(ComplexF64,(3*(polydegs[1]+1)*(polydegs[2]+1),size(wlsweep,1),2))
 sorttol = 1e-2
 for (nl,wl) in enumerate(wlsweep)
-    update_dependencies!(λ=wl)
+    Init_Workspace(λ = wl, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
+        ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
     println(p.lambda)
     kmodes[nl, :], curvecs[:,nl,:] = getpolyxMode(polydegs,oldQEP=false)
     if nl != 1 && abs(kmodes[nl, 1] - kmodes[nl-1, 1]) > abs(kmodes[nl, 1] - kmodes[nl-1, end])
