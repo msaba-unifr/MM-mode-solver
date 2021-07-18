@@ -50,11 +50,10 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
 # @printf("Polydegs = (%d,%d) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",polydegs[1],polydegs[2],
 #     real(ksolspoly[1]),imag(ksolspoly[1]),real(ksolspoly[2]),imag(ksolspoly[2]))
 
-wlsweep = 800 : -10 : 300
+wlsweep = 585 : -5 : 300
 kmodes = zeros(ComplexF64,(size(wlsweep,1),2))
 curvecs = zeros(ComplexF64,(3*(polydegs[1]+1)*(polydegs[2]+1),size(wlsweep,1),2))
-sorttol = 1e-2
-t1=time()
+sorttol = 1e-2t1=time()
 for (nl,wl) in enumerate(wlsweep)
     @printf("Runtime %f minutes.\n",(time()-t1)/60);global t1=time()
     Init_Workspace(λ = wl, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
@@ -67,7 +66,7 @@ for (nl,wl) in enumerate(wlsweep)
 end
 
 f_v = 3e5 ./ collect(wlsweep)
-bands_path = string(pwd(), "\\Results\\BS_R10_90-0_poly22.dat")
+bands_path = string(pwd(), "\\Results\\BS_R10_90-0_poly22_rest.dat")
 open(bands_path, "w") do io
     write(io, "Frequency Re(k1) Im(k1) Re(k2) Im(k2)\n")
     writedlm(io, hcat(real.(f_v), real.(kmodes[:,1]), imag.(kmodes[:,1]), real.(kmodes[:,2]), imag(kmodes[:,2])))
