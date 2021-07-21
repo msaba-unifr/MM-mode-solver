@@ -12,7 +12,7 @@ include("parameters.jl")
 include("methods.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
-λ = 370     #wavelength in nm
+λ = 355     #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
 NG = 200    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
@@ -27,7 +27,7 @@ if mmdim == 1
     V_2 = 2*Rad                              #Volume definition required
 elseif mmdim == 2
     V_2 = pi*Rad^2
-    polydegs = (1,1)    #maximum degrees (N,M) of polynomial to approximate the current in the d-sphere c=
+    polydegs = (2,2)    #maximum degrees (N,M) of polynomial to approximate the current in the d-sphere c=
 end
 
 #Code starts here
@@ -41,7 +41,7 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
 ksols,csols = getpolyxMode((0,0))
 @printf("Polydegs=(0,0) took %f minutes.\n",(time()-t1)/60); t1=time()
 
-ksolspoly,csolspoly = getpolyxMode(polydegs,oldQEP=false)
+ksolspoly,csolspoly = getpolyxMode(polydegs,manual_ks=[0.021+0.069im,0.075+0.03im])
 @printf("Polydegs=(%d,%d) took %f minutes.\n\n",polydegs[1],polydegs[2],(time()-t1)/60)
 
 @printf("Polydegs = (0,0) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",

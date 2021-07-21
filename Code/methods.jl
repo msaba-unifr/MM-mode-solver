@@ -25,24 +25,18 @@ function Init_Workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
     return
 end
 
-function getpolyxMode(deg;oldQEP=false)
+function getpolyxMode(deg;manual_ks=[0im,0im])
 
     o_vec = zeros(ComplexF64, (3,1))
     𝓗invs = getHinv(Gs,o_vec, p.k_1)
     #InitialGuess
-    if oldQEP == true
-        eigs_init = getInitGuess(IP²_noDC,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
-        l.V_2, l.V)
-        QEPdim = 3
-    else
-        eigs_init = getQEPpolyx(deg,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
-        l.V_2, l.V)
-        QEPdim = 3*((deg[1]+1)*(deg[2]+1))
-    end
+    eigs_init = getQEPpolyx(deg,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+    l.V_2, l.V)
     λs,vs = eigs_init.values, eigs_init.vectors
 
     ks = zeros(ComplexF64,(2))
-    cs = zeros(ComplexF64,(QEPdim,2))
+    dim = 3*((deg[1]+1)*(deg[2]+1))
+    cs = zeros(ComplexF64,(dim,2))
 
     for (i, λ_val) in enumerate(λs)
 
@@ -53,16 +47,19 @@ function getpolyxMode(deg;oldQEP=false)
         end
         if ks[1] == 0
             ks[1] = λs[i]
-            cs[:, 1] = vs[QEPdim+1:2*QEPdim, i]
+            cs[:, 1] = vs[dim+1:2*dim, i]
         else
             ks[2] = λs[i]
-            cs[:, 2] = vs[QEPdim+1:2*QEPdim, i]
+            cs[:, 2] = vs[dim+1:2*dim, i]
         end
+    end
+    if norm(manual_ks) != 0
+        ks = manual_ks
     end
 
     #Solve NLEVP for each non filtered mode
     ksols = zeros(ComplexF64,(2))
-    csols = zeros(ComplexF64,(3*((deg[1]+1)*(deg[2]+1)),2))
+    csols = zeros(ComplexF64,(dim,2))
     for mode = 1:2
 
         # global IP²_factor = (p.k_1^2 - p.k_2^2) / l.V_2 / l.V .* IP²
