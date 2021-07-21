@@ -5,6 +5,7 @@ using SpecialFunctions
 using DelimitedFiles
 using Interpolations
 using Dates
+using Distributed
 #using Plots
 #using PyPlot
 #using NonlinearEigenproblems
@@ -17,7 +18,7 @@ include("methods.jl")
 λ = 370     #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
-NG = 300    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+NG = 200    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
 ϵ_bg = 1 + 0im  #permittivity of background medium
 mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
 a = 30.0    #lattice constant
@@ -51,28 +52,24 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
 # @printf("Polydegs = (%d,%d) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",polydegs[1],polydegs[2],
 #     real(ksolspoly[1]),imag(ksolspoly[1]),real(ksolspoly[2]),imag(ksolspoly[2]))
 
-wlsweep = 585 : -5 : 300
-f_v = 3e5 ./ collect(wlsweep)
-bands_path = string(pwd(), "\\Results\\BS_R10_90-0_poly22_rest.dat")
-open(bands_path, "w") do io
-    write(io, "Frequency Re(k1) Im(k1) Re(k2) Im(k2)\n")
+freq_sweep = 390 : -5 : 385
+speed_of_light = 2.99792458e5
+bands_path = string(pwd(), "\\Results\\BS_.dat")
+open(bands_path, "a") do io
+    write(io, string(now(),"\nFrequency Re(k1) Im(k1) Re(k2) Im(k2)\n"))
 end
-kmodes = zeros(ComplexF64,(size(wlsweep,1),2))
-curvecs = zeros(ComplexF64,(3*(polydegs[1]+1)*(polydegs[2]+1),size(wlsweep,1),2))
 sorttol = 1e-2
 t1=time()
-for (nl,wl) in enumerate(wlsweep)
+for freq in collect(freq_sweep)
+    wl = speed_of_light / freq
     Init_Workspace(λ = wl, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
         ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
     println(p.lambda)
-    kmodes[nl, :], curvecs[:,nl,:] = getpolyxMode(polydegs,oldQEP=false)
-    if nl != 1 && abs(kmodes[nl, 1] - kmodes[nl-1, 1]) > abs(kmodes[nl, 1] - kmodes[nl-1, end])
-        kmodes[nl, :] = kmodes[nl, end:-1:1]
-    end
+    kmode = getpolyxMode(polydegs,oldQEP=false)[1]
     open(bands_path, "a") do io
-        writedlm(io, hcat(real.(f_v[nl]), real.(kmodes[nl,1]), imag.(kmodes[nl,1]), real.(kmodes[nl,2]), imag(kmodes[nl,2])))
+        writedlm(io, hcat(real.(freq), real.(kmode[1]), imag.(kmode[1]), real.(kmode[2]), imag(kmode[2])))
     end
-    @printf("Runtime %f minutes, finished @ %s\n",(time()-t1)/60,Dates.format(now(), "HHhMM"));global t1=time()
+    @printf("Runtime for %f nm was %f minutes, finished @ %s\n",wl,(time()-t1)/60,Dates.format(now(), "HHhMM"));global t1=time()
 end
 
 

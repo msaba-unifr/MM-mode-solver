@@ -2,57 +2,56 @@
 function update_dependencies!(; kwargs...)
     vars = keys(kwargs)
     for var in vars
-        if var == :wl
-            global p = Parameters(kwargs[var], p.azim, p.incl, p.e_m, p.e_bg)
-            update_dependencies!(ϵ_m = mat_file)
+        if var == :λ
+            global p = Parameters(kwargs[var], p.azim, p.polar, p.eps_1, p.eps_2)
+            update_dependencies!(ϵ_2 = mat_file)
         end
         if var == :φ
-            global p = Parameters(p.lambda, kwargs[var], p.incl, p.e_m, p.e_bg)
+            global p = Parameters(p.lambda, kwargs[var], p.polar, p.eps_1, p.eps_2)
         end
         if var == :θ
-            global p = Parameters(p.lambda, p.azim, kwargs[var], p.e_m, p.e_bg)
+            global p = Parameters(p.lambda, p.azim, kwargs[var], p.eps_1, p.eps_2)
         end
         if var == :NG
             global l = Lattice2D(kwargs[var],l.A,l.V_2, l.R)
             #Creating G_space
             global Gs = getGspace()
-            global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R,
-                exclude_DC=true),dims=1).^2
-            global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R),dims=1)
-            global IP² = IP.^2
+            # global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R,
+            #     exclude_DC=true),dims=1).^2
+            # global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R),dims=1)
+            # global IP² = IP.^2
         end
         if var == :ϵ_bg
-            global p = Parameters(p.lambda, p.azim, p.incl,  p.e_m, kwargs[var])
+            global p = Parameters(p.lambda, p.azim, p.polar,  p.eps_2, kwargs[var])
         end
-        if var == :ϵ_m
+        if var == :ϵ_2
             if typeof(kwargs[var]) == String
                 file_loc = string(pwd(), "\\MaterialModels\\", kwargs[var])
                 eps_data = readdlm(file_loc, '\t', Float64, '\n')
                 itp1 = LinearInterpolation(eps_data[:,1], eps_data[:,2])
                 itp2 = LinearInterpolation(eps_data[:,1], eps_data[:,3])
-                ϵ_m = (itp1.(p.lambda ./ 1000) + itp2.(p.lambda ./ 1000) * 1im).^2
-                global p = Parameters(p.lambda, p.azim, p.incl,  ϵ_m, p.e_bg)
+                ϵ_2 = (itp1.(p.lambda ./ 1000) + itp2.(p.lambda ./ 1000) * 1im).^2
+                global p = Parameters(p.lambda, p.azim, p.polar, p.eps_1,  ϵ_2)
             else
-                global p = Parameters(p.lambda, p.azim, p.incl,  kwargs[var],
-                    p.e_bg)
+                global p = Parameters(p.lambda, p.azim, p.polar, p.eps_1,  kwargs[var])
             end
         end
         if var == :A
             global l = Lattice2D(l.NG, kwargs[var], l.V_2, l.R)
             #Creating G_space
             global Gs = getGspace()
-            global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R,
-                exclude_DC=true),dims=1).^2
-            global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R),dims=1)
-            global IP² = IP.^2
+            # global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R,
+            #     exclude_DC=true),dims=1).^2
+            # global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*l.R),dims=1)
+            # global IP² = IP.^2
         end
         if var == :Rad
             global l = Lattice2D(l.NG, l.A, pi*kwargs[var]^2, kwargs[var])
-            global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*
-                kwargs[var], exclude_DC=true),dims=1).^2
-            global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*
-                kwargs[var]),dims=1)
-            global IP² = IP.^2
+            # global IP²_noDC = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*
+            #     kwargs[var], exclude_DC=true),dims=1).^2
+            # global IP = dropdims(InnerProd.(sqrt.(sum(Gs.*Gs,dims=1))*
+            #     kwargs[var]),dims=1)
+            # global IP² = IP.^2
         end
         if var == :V_2
             global l = Lattice2D(l.NG, l.A, kwargs[var], l.R)
@@ -75,7 +74,7 @@ function getMode()
 
         if real(λ_val) <= 0
             continue
-        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
+        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.eps_1*p.k_0^2)) < 1e-8
             continue
         end
         if ks[1] == 0
@@ -116,7 +115,7 @@ function getpoly2Mode()
 
         if real(λ_val) <= 0
             continue
-        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
+        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.eps_1*p.k_0^2)) < 1e-8
             continue
         end
         if ks[1] == 0
@@ -157,7 +156,7 @@ function getpoly4Mode()
 
         if real(λ_val) <= 0
             continue
-        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.e_bg*p.k_0^2)) < 1e-8
+        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.eps_1*p.k_0^2)) < 1e-8
             continue
         end
         if ks[1] == 0
