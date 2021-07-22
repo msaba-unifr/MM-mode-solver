@@ -4,6 +4,7 @@ using Einsum
 using SpecialFunctions
 using DelimitedFiles
 using Interpolations
+using Dates
 #using Plots
 #using PyPlot
 #using NonlinearEigenproblems
@@ -12,10 +13,11 @@ include("parameters.jl")
 include("methods.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
-λ = 355     #wavelength in nm
+freq = 828
+λ = 2.99792458e5/freq     #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
-NG = 200    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+NG = 300    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
 ϵ_bg = 1 + 0im  #permittivity of background medium
 mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
 a = 30.0    #lattice constant
@@ -32,22 +34,24 @@ end
 
 #Code starts here
 println()
-@printf("Starting program with NG = %d.\n",NG)
+@printf("Starting program with NG = %d, λ = %.2f @ %s.\n",NG,λ,Dates.format(now(), "HHhMM"))
 t0=time()
 Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
 @printf("Init workspace took %f minutes.\n",(time()-t0)/60); t1=time()
 
-ksols,csols = getpolyxMode((0,0))
-@printf("Polydegs=(0,0) took %f minutes.\n",(time()-t1)/60); t1=time()
+# ksols,csols = getpolyxMode((0,0))
+# @printf("Polydegs=(0,0) took %f minutes.\n",(time()-t1)/60); t1=time()
 
-ksolspoly,csolspoly = getpolyxMode(polydegs,manual_ks=[0.021+0.069im,0.075+0.03im])
-@printf("Polydegs=(%d,%d) took %f minutes.\n\n",polydegs[1],polydegs[2],(time()-t1)/60)
+# ksolspoly,csolspoly = getpolyxMode(polydegs)
+ksolspoly,csolspoly = getpolyxMode(polydegs,manual_ks=[0.0015771808183502327 + 0.010102987456903237im, 0.26708433159818806 + 0.045394802224430230im])
+@printf("Polydegs=(%d,%d) took %.2f minutes.\n\n",polydegs[1],polydegs[2],(time()-t1)/60)
 
-@printf("Polydegs = (0,0) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",
-    real(ksols[1]),imag(ksols[1]),real(ksols[2]),imag(ksols[2]))
+# @printf("Polydegs = (0,0) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",
+#     real(ksols[1]),imag(ksols[1]),real(ksols[2]),imag(ksols[2]))
 @printf("Polydegs = (%d,%d) solutions: k1 = %f + %f im and k2 = %f + %f im.\n",polydegs[1],polydegs[2],
     real(ksolspoly[1]),imag(ksolspoly[1]),real(ksolspoly[2]),imag(ksolspoly[2]))
+println(freq,ksolspoly)
 
 #eigs = eigen(getpolyxM(polydegs,ksolspoly[2]),sortby=x->abs(x))
 #println()
