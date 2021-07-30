@@ -44,19 +44,17 @@ function getGspace(mmdim)
     return Gs
 end
 
-function getHinv(Gs, k_v, k_1)::Array{Complex{Float64},5}
+function getHinv(G, k_v, k_1)::Array{Complex{Float64},2}
     #Creating 𝓗⁻¹#
     # Adding vectors
     k_v = reshape(k_v, (3,1))
-    @einsum kG[i,k,n,m] := k_v[i] + Gs[i,k,n,m]
-    #Creating square of elements
-    @einsum kG_2[k,n,m] := kG[i,k,n,m] * kG[i,k,n,m]
+    kG = k_v + G
     #Creating TensorProduct
-    @einsum outM[i,j,k,n,m] := kG[i,k,n,m] * kG[j,k,n,m]
+    outM = kG * kG'
     #Computing inverse
-    H_factor = 1 ./ (k_1^2 .- kG_2)
+    H_factor = 1 ./ (k_1^2 .- sum(kG.^2))
     outM = Matrix{ComplexF64}(I,3,3) .- outM / k_1^2
-    @einsum outM[i,j,k,n,m] = H_factor[k,n,m] * outM[i,j,k,n,m]
+    outM = H_factor .* outM
     return outM
 end
 
@@ -75,18 +73,29 @@ function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function polyxDiskIP(uuu,uuy,uuz,degmn)
+function polyxDiskIP(G ,degmn)
     m=degmn[1]
     n=degmn[2]
+    abs_G = sum(G.^2)
+    if abs_G == 0
+        return 0.0 + 0.0im
+    end
+    Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1))
+    Gy = G[2]
+    Gz = G[3]
     cαm = RecurCoef(degmn)
-    Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1,2*l.NG+1,2*l.NG+1,1))
     for α in 0:floor(Int,m/2)
         for β in 0:floor(Int,n/2)
-            Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] * uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .* BessQnoDC.(m+n-α-β+1,uuu)
+            Summands[α+1,β+1] = (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] *
+                Gy.^(m-2*α).*Gz.^(n-2*β)./abs_G.^(m+n-α-β) .*
+                    BessQnoDC(m+n-α-β+1,abs_G)
+                    if G == zeros(size(G))
+                        println("G= ", G, "  ||  ", Summands[α+1,β+1])
+                    end
         end
     end
-    Summands[:,:,l.NG+1,l.NG+1,:] .= 0
-    return dropdims(sum(Summands,dims=1:2),dims=(1,2))
+    #Summands[:,:,l.NG+1,l.NG+1,:] .= 0 #should not be necessary
+    return sum(Summands)
 end
 
 function RecurCoef(degmn)
@@ -101,7 +110,7 @@ function RecurCoef(degmn)
     return cαm
 end
 
-function IPcoefficients(uuu,uuy,uuz,deg)
+function getQq(deg)
     Qqlen = (deg[1]+1)*(deg[2]+1)
     degreelist = zeros(Int8,(2,Qqlen))
     Qq = zeros((Qqlen,Qqlen))
@@ -128,15 +137,18 @@ function IPcoefficients(uuu,uuy,uuz,deg)
         end
     end
 
-    IPvec = zeros(ComplexF64,(Qqlen,2*l.NG+1,2*l.NG+1,1))
-    for i in 1:Qqlen
-        degmn = degreelist[:,i]
-        IPvec[i,:,:,:] = 2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(uuu,uuy,uuz,degmn)
-    end
-
     Pp0 = Qq[1,:]*Qq[1,:]'
+    return Qq, Pp0, degreelist
+end
 
-    return Qq,Pp0,IPvec
+function getIPvec(G, deg, degreelist)
+
+    IPvec = zeros(ComplexF64,(size(degreelist,2)))
+    for i in 1:((deg[1]+1)*(deg[2]+1))
+        degmn = degreelist[:,i]
+        IPvec[i] = 2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(G ,degmn)
+    end
+    return IPvec
 end
 
 function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
@@ -263,29 +275,24 @@ function scalarNewton(init, maxiter=1000, tol2=5e-9)
 end
 
 
-function getpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
+function getpolyxM(deg, λ_value, NG, lat, eps = 1.0e-8)::Array{Complex{Float64},2}
+
     k_v = [p.k_x ; p.k_y; λ_value]
-    H_inv = getHinv(Gs, k_v, p.k_1)
-    absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
-    Gys = Gs[2,:,:,:]
-    Gzs = Gs[3,:,:,:]
-    uuu = absGs*l.R
-    uuy = Gys*l.R
-    uuz = Gzs*l.R
-    Qq,Pp0,IPvec = IPcoefficients(uuu,uuy,uuz,deg)
-    IPvec[:,l.NG+1,l.NG+1,1] = Qq[1,:]
-    if deg[1]+deg[2] == 0
-        IPvec = dropdims(IPvec,dims=1)
-        IPvecconj = conj.(IPvec)
-        Pp = IPvec.*IPvecconj
-        summands = [Pp[k,n,m]*H_inv[:,:,k,n,m] for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
-    else
-        IPvecconj = conj.(IPvec)
-        @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
-        summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
+    Qq, Pp0, deg_list = getQq(deg)
+    summands = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
+    for k in -NG:NG, n in -NG:NG, m in 1:1
+
+        G = lat * [k, n, m]
+        H_inv = getHinv(G, k_v, p.k_1)
+        if k == NG+1 && n == NG+1
+            IPvec = Qq[1,:]
+        else
+            IPvec = getIPvec(G, deg, deg_list)
+        end
+        summands += kron((IPvec * conj(IPvec)'), H_inv)
+        #println("k= ", k, "n= ", n , "  ||  ", maximum(abs.(kron((IPvec * conj(IPvec)'), H_inv))))
     end
-    latsum = sum(summands)
-    return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
+    return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * summands
 end
 
 function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
