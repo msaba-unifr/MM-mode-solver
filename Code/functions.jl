@@ -76,7 +76,7 @@ end
 function polyxDiskIP(G ,degmn)
     m=degmn[1]
     n=degmn[2]
-    abs_G = sum(G.^2)
+    abs_G = sqrt(sum(G.^2))
     if abs_G == 0
         return 0.0 + 0.0im
     end

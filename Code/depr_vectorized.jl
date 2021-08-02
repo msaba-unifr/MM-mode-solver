@@ -22,7 +22,9 @@ function VecpolyxDiskIP(uuu,uuy,uuz,degmn)
     Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1,2*l.NG+1,2*l.NG+1,1))
     for α in 0:floor(Int,m/2)
         for β in 0:floor(Int,n/2)
-            Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] * uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .* BessQnoDC.(m+n-α-β+1,uuu)
+            Summands[α+1,β+1,:,:,:] = (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] *
+            uuy.^(m-2*α).*uuz.^(n-2*β)./uuu.^(m+n-α-β) .*
+            BessQnoDC.(m+n-α-β+1,uuu)
         end
     end
     Summands[:,:,l.NG+1,l.NG+1,:] .= 0
