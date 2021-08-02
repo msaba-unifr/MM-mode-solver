@@ -80,15 +80,16 @@ function polyxDiskIP(G ,degmn)
     if abs_G == 0
         return 0.0 + 0.0im
     end
+    uuu = abs_G*l.R
     Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1))
-    Gy = G[2]
-    Gz = G[3]
+    uuuy = G[2]*l.R
+    uuuz = G[3]*l.R
     cαm = RecurCoef(degmn)
     for α in 0:floor(Int,m/2)
         for β in 0:floor(Int,n/2)
             Summands[α+1,β+1] = (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] *
-                Gy.^(m-2*α).*Gz.^(n-2*β)./abs_G.^(m+n-α-β) .*
-                    BessQnoDC(m+n-α-β+1,abs_G)
+                uuuy^(m-2*α)*uuuz^(n-2*β)/uuu^(m+n-α-β) *
+                    BessQnoDC(m+n-α-β+1,uuu)
                     if G == zeros(size(G))
                         println("G= ", G, "  ||  ", Summands[α+1,β+1])
                     end

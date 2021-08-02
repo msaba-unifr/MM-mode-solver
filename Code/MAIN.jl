@@ -15,7 +15,7 @@ freq = 828
 λ = 2.99792458e5/freq      #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
-NG = 10    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+NG = 1    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
 ϵ_bg = 1 + 0im  #permittivity of background medium
 mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
 a = 30.0    #lattice constant
@@ -35,5 +35,16 @@ end
 Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
 
-oldmatrix = VecgetpolyxM(polydegs, 1.1*2*π/λ)
-newmatrix = getpolyxM(polydegs, 1.1*2*π/λ, NG, l.B,)
+degreelist = getQq(polydegs)[3]
+absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
+Gys = Gs[2,:,:,:]
+Gzs = Gs[3,:,:,:]
+uuu = absGs*l.R
+uuy = Gys*l.R
+uuz = Gzs*l.R
+
+# oldIPvec = VecIPcoefficients(uuu,uuy,uuz,polydegs)[3][:,1,1,1]
+# println(oldIPvec)
+
+newIPvec = getIPvec(l.B*[-1,-1,-1], polydegs, degreelist)
+println(newIPvec)
