@@ -182,99 +182,6 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function getCuEP(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
-    ζ = (k_1^2-k_2^2) * V_2 / V / k_1^2
-    Gzs = Gs[3,:,:,:]
-    uuu = Gzs*l.R
-    if deg == 0
-        IPvec = sin.(uuu)./uuu
-        Qq = 0
-        Pp0 = 1
-    elseif deg == 2
-        IPvec = [sin.(uuu)./uuu,
-                 1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
-                 1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu))]
-        Qq = [1.0+0im 0 1/3;0 1/3 0;1/3 0 1/5]
-        Pp0 = [1.0+0im 0 1/3;0 0 0;1/3 0 1/9]
-    elseif deg == 4
-        IPvec = [sin.(uuu)./uuu,
-                 1im ./ uuu.^2 .* (sin.(uuu) - uuu.*cos.(uuu)),
-                 1   ./ uuu.^3 .* (2*uuu.*cos.(uuu) + (uuu.^2 .- 2).*sin.(uuu)),
-                 1im ./ uuu.^4 .* ((6*uuu .- uuu.^3).*cos.(uuu) + (3*uuu.^2 .- 6).*sin.(uuu)),
-                 1   ./ uuu.^5 .* (4*(uuu.^3 .-6*uuu).*cos.(uuu) + (uuu.^4 .- 12*uuu.^2 .+ 24).*sin.(uuu))]
-        Qq = [1.0+0im 0 1/3 0 1/5;0 1/3 0 1/5 0;1/3 0 1/5 0 1/7;0 1/5 0 1/7 0;1/5 0 1/7 0 1/9]
-        Pp0 = [1.0+0im 0 1/3 0 1/5;0 0 0 0 0;1/3 0 1/9 0 1/15;0 0 0 0 0;1/5 0 1/15 0 1/25]
-    else
-        println("specified polynomial degree not implemented")
-    end
-    IPvec = [IPvec[n][i,j,k] for n in 1:deg+1, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-    IPvec[:,l.NG+1,:,:] .= 0
-    IPvecconj = conj.(IPvec)
-    @einsum Pp[i,j,k,n,m] := IPvec[i,k,n,m] * IPvecconj[j,k,n,m]
-    kpar = [k_x,k_y,0]
-    kpar² = dot(kpar,kpar)
-    kparTx = kpar*kpar'
-    kparG = kpar .+ Gs
-    @einsum kparG²[k,n,m] := kparG[i,k,n,m]*kparG[i,k,n,m]
-    @einsum kparGTx[i,j,k,n,m] := kparG[i,k,n,m]*kparG[j,k,n,m]
-    Rr0 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx)[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
-    Ss0 = (k_1^2 - kpar²)./(k_1^2 .- kparG²) .* Rr0
-    Ss0 = ζ * sum(Ss0)
-    e3 = [0,0,1]
-    @einsum kparGxe3[i,j,k,n,m] := kparG[i,k,n,m]*e3[j]
-    Rr1 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx .- kparGxe3 .- transpose.(conj.(kparGxe3)))[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
-    Ss1 = (k_1^2 - kpar²)./(k_1^2 .- kparG²) .* (2*Gzs ./ (k_1^2 .- kparG²)) .* Rr1
-    Ss1 = ζ * sum(Ss1)
-    Rr2 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx)[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
-    Ss2 = 1 ./(k_1^2 .- kparG²) .* Rr2
-    Ss2 = ζ * sum(Ss2)
-    Rr3 = [kron(Pp[:,:,k,n,m],(k_1^2*one(ones(3,3)) .- kparGTx .- kparGxe3 .- transpose.(conj.(kparGxe3)))[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:1, m in 1:1]
-    Ss3 = 1 ./(k_1^2 .- kparG²) .* (2*Gzs ./ (k_1^2 .- kparG²)) .* Rr3
-    Ss3 = ζ * sum(Ss3)
-    Mm0 = (k_1^2-kpar²) * kron(Qq,one(ones(3,3))) - ζ* kron(Pp0,k_1^2*one(ones(3,3))-kparTx) - ζ * Ss0
-    Mm1 = ζ* kron(Pp0,kpar*[0,0,1]' .- transpose(conj.(kpar*[0,0,1]'))) - ζ * Ss1
-    Mm2 = -kron(Qq,one(ones(3,3))) .+ ζ * kron(Pp0,[0 0 0;0 0 0;0 0 1]) .+ Ss2
-    Mm3 = Ss3
-
-    nep = PEP([Mm0, Mm1, Mm2, Mm3])
-    λ, v = polyeig(nep)
-
-    return λ, v
-end
-
-function getM(λ_value, IPs, eps = 1.0e-8)::Array{Complex{Float64},2}
-
-    k_v = [p.k_x ; p.k_y; λ_value]
-    H_inv = getHinv(Gs, k_v, p.k_1)
-    @einsum GH_sum[i,j,k,n,m] := IPs[k,n,m] * H_inv[i,j,k,n,m]
-    GH_sum = dropdims(sum(GH_sum, dims=(3,4,5)),dims=(3,4,5))
-    return I - GH_sum
-end
-
-function getMder(λ_value, IPs, eps = 1.0e-8)::Complex{Float64}
-
-    return (det(getM(λ_value+eps, IPs)) -
-            det(getM(λ_value-eps, IPs)))/(2*eps)
-end
-
-function scalarNewton(init, maxiter=1000, tol2=5e-9)
-
-    k = init
-    for nn in 1:maxiter
-        phik = det(getM(k, IP²_factor))
-        knew = k - phik / getMder(k, IP²_factor)
-        delk = abs(1 - knew / k)
-        if delk < tol2
-            global knew = knew
-            break
-        end
-        k = knew
-        nn == maxiter ? throw("No conv in Newton") : nothing
-    end
-    return knew
-end
-
-
 function getpolyxM(deg, λ_value, NG, lat, eps = 1.0e-8)::Array{Complex{Float64},2}
 
     k_v = [p.k_x ; p.k_y; λ_value]
@@ -318,9 +225,16 @@ function polyxNewton(deg,init, maxiter=1000, tol2=5e-9)
     return knew
 end
 
-function getFieldValue(H, KG_slice_y, KG_slice_z, y, z)::ComplexF64
-
-    return sum(H .* exp.(1im*KG_slice_y*y) .* exp.(1im*KG_slice_z*-z ))
+function doublefactorial(n::Integer)
+    if n <= 0
+        return 1
+    elseif isodd(n)
+        k = (n+1)/2
+        return factorial(2*k) / 2^k / factorial(k)
+    else
+        k = n/2
+        return 2^k * factorial(k)
+    end
 end
 
 function solve_analytical(params,lattice,TE=true)
@@ -338,59 +252,4 @@ function solve_analytical(params,lattice,TE=true)
     V = 1im/2*(Z2/Z1-Z1/Z2)*sin(k1*d1)
     T = [Up V; -V Um]
     return eigen(T)
-end
-
-function getD2field_poly2(k,c,lattice,z)
-    if abs(c[1]) > abs(c[2])
-        return (1+c[4]/c[1]*z/l.R+c[7]/c[1]*(z/l.R)^2)*exp(1im*k*z)
-    else
-        return (1+c[5]/c[2]*z/l.R+c[8]/c[2]*(z/l.R)^2)*exp(1im*k*z)
-    end
-end
-
-function getD2field_poly4(k,c,lattice,z)
-    znorm = l.R
-    if abs(c[1]) > abs(c[2])
-        return (1+c[4]/c[1]*(z/znorm)+c[7]/c[1]*(z/znorm)^2
-        +c[10]/c[1]*(z/znorm)^3+c[13]/c[1]*(z/znorm)^4)*exp(1im*k*z)
-    else
-        return (1+c[5]/c[2]*z/znorm+c[8]/c[2]*(z/znorm)^2
-        +c[11]/c[2]*(z/znorm)^3+c[14]/c[2]*(z/znorm)^4)*exp(1im*k*z)
-    end
-end
-
-function getEfield_9D(k,c,lattice,params,z)
-    k_v = [params.k_x ; params.k_y; k]
-    H_inv = getHinv(Gs, k_v, params.k_1)
-    Gzs = Gs[3,:,:,:]
-    IP9D = [sinc.(V_2/2/pi * Gzs),
-        - 1im ./(V_2 * Gzs) .* (sinc.(V_2/2/pi * Gzs) - cos.(V_2/2 * Gzs)),
-        1/4 * sinc.(V_2/2/pi * Gzs) + 2 ./(V_2^2 * Gzs.^2) .* (cos.(V_2/2 * Gzs) - sinc.(V_2/2/pi * Gzs))]
-    IP9D = [IP9D[n][i,j,k] for n in 1:3, i in 1:2*l.NG+1, j in 1:1, k in 1:1]
-    IP9D[:,l.NG+1,:,:] = [1.0,0,1/12]
-    multi = [kron(IP9D[:,k,l,m],H_inv[i,:,k,l,m]) for i in 1:3, k in 1:2*l.NG+1, l in 1:1, m in 1:1]
-    multi = [multi[i,k,l,m][j] for i in 1:3, j in 1:9, k in 1:2*l.NG+1, l in 1:1, m in 1:1]
-    @einsum εG[i,k,l,m] := multi[i,j,k,l,m]*c[j]
-    phase = exp.(1im*(k .+ Gzs)*z)
-    @einsum summand[k,l,m] := εG[2,k,l,m]*phase[k,l,m]
-    return first(sum(summand,dims=(1,2,3)))
-end
-
-
-function getD2field_ana(lams,vs,params,lattice,z)
-    a = lattice.A
-    k2 = sqrt(params.e_m-sin(params.incl/180*pi)^2)*params.k_0
-    return (vs[1,1]*exp(1im*k2*z) + vs[2,1]*exp(-1im*k2*z))/(vs[1,1]+vs[2,1])
-end
-
-function doublefactorial(n::Integer)
-    if n <= 0
-        return 1
-    elseif isodd(n)
-        k = (n+1)/2
-        return factorial(2*k) / 2^k / factorial(k)
-    else
-        k = n/2
-        return 2^k * factorial(k)
-    end
 end

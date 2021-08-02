@@ -8,6 +8,7 @@ using Dates
 
 include("parameters.jl")
 include("methods.jl")
+include("depr_vectorized.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
 freq = 828
@@ -33,4 +34,6 @@ end
 
 Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
-test = getpolyxM(polydegs, 1.1*2*π/λ, NG, l.B,)
+
+oldmatrix = VecgetpolyxM(polydegs, 1.1*2*π/λ)
+newmatrix = getpolyxM(polydegs, 1.1*2*π/λ, NG, l.B,)
