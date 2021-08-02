@@ -91,7 +91,7 @@ function VecgetpolyxM(deg, λ_value, eps = 1.0e-8)::Array{Complex{Float64},2}
         summands = [kron(Pp[:,:,k,n,m],H_inv[:,:,k,n,m]) for k in 1:2*l.NG+1, n in 1:2*l.NG+1, m in 1:1]
     end
     latsum = sum(summands)
-    return latsum#kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
+    return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
 
 function VecgetpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}

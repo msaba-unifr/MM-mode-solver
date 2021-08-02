@@ -197,10 +197,10 @@ function getpolyxM(deg, λ_value, NG, B, eps = 1.0e-8)::Array{Complex{Float64},2
         else
             IPvec = getIPvec(G, deg, deg_list)
         end
-        latsum += kron((IPvec * conj(IPvec)'), H_inv)
+        latsum += kron((IPvec * IPvec'), H_inv)
         #println("k= ", k, "n= ", n , "  ||  ", maximum(abs.(kron((IPvec * conj(IPvec)'), H_inv))))
     end
-    return latsum#kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
+    return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
 
 function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
