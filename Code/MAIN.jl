@@ -10,7 +10,8 @@ include("parameters.jl")
 include("methods.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
-wl = 370     #wavelength in nm
+freq = 828
+λ = 2.99792458e5/freq      #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
 NG = 10    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
@@ -30,6 +31,6 @@ end
 
 #Code starts here
 
-Init_Workspace(λ = wl, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
+Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
-test = getpolyxM(polydegs, 0.0, NG, l.B,)
+test = getpolyxM(polydegs, 1.1*2*π/λ, NG, l.B,)
