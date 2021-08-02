@@ -35,16 +35,10 @@ end
 Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
 
-degreelist = getQq(polydegs)[3]
-absGs = dropdims(sqrt.(sum(Gs.^2,dims=1)),dims=1)
-Gys = Gs[2,:,:,:]
-Gzs = Gs[3,:,:,:]
-uuu = absGs*l.R
-uuy = Gys*l.R
-uuz = Gzs*l.R
+new = getpolyxM(polydegs,0.02+0.01im,NG,l.B)
+old = VecgetpolyxM(polydegs,0.02+0.01im)
 
-old = VecIPcoefficients(uuu,uuy,uuz,polydegs)[3][:,1,1,1]
-println(old)
-
-new = getIPvec(l.B*[-1,-1,-1],polydegs,degreelist)
+println()
 println(new)
+println(old)
+println(norm(old.-new))

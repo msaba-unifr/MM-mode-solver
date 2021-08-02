@@ -50,11 +50,11 @@ function getHinv(G, k_v, k_1)::Array{Complex{Float64},2}
     k_v = reshape(k_v, (3,1))
     kG = k_v + G
     #Creating TensorProduct
-    outM = kG * kG'
+    outM = kG * transpose(kG)
     #Computing inverse
     H_factor = 1 ./ (k_1^2 .- sum(kG.^2))
     outM = Matrix{ComplexF64}(I,3,3) .- outM / k_1^2
-    outM = H_factor .* outM
+    outM = H_factor * outM
     return outM
 end
 
@@ -183,24 +183,24 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function getpolyxM(deg, λ_value, NG, lat, eps = 1.0e-8)::Array{Complex{Float64},2}
+function getpolyxM(deg, λ_value, NG, B, eps = 1.0e-8)::Array{Complex{Float64},2}
 
     k_v = [p.k_x ; p.k_y; λ_value]
     Qq, Pp0, deg_list = getQq(deg)
-    summands = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
-    for k in -NG:NG, n in -NG:NG, m in 1:1
+    latsum = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
+    for k in -NG:NG, n in -NG:NG, m in 0:0
 
-        G = lat * [k, n, m]
+        G = B * [k, n, m]
         H_inv = getHinv(G, k_v, p.k_1)
-        if k == NG+1 && n == NG+1
+        if k == 0 && n == 0
             IPvec = Qq[1,:]
         else
             IPvec = getIPvec(G, deg, deg_list)
         end
-        summands += kron((IPvec * conj(IPvec)'), H_inv)
+        latsum += kron((IPvec * conj(IPvec)'), H_inv)
         #println("k= ", k, "n= ", n , "  ||  ", maximum(abs.(kron((IPvec * conj(IPvec)'), H_inv))))
     end
-    return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * summands
+    return latsum#kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
 
 function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
