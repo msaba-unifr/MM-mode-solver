@@ -43,8 +43,8 @@ uuu = absGs*l.R
 uuy = Gys*l.R
 uuz = Gzs*l.R
 
-# oldIPvec = VecIPcoefficients(uuu,uuy,uuz,polydegs)[3][:,1,1,1]
-# println(oldIPvec)
+old = VecIPcoefficients(uuu,uuy,uuz,polydegs)[3][:,1,1,1]
+println(old)
 
-newIPvec = getIPvec(l.B*[-1,-1,-1], polydegs, degreelist)
-println(newIPvec)
+new = getIPvec(l.B*[-1,-1,-1],polydegs,degreelist)
+println(new)
