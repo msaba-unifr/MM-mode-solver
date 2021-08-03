@@ -190,7 +190,6 @@ function getpolyxM(deg, λ_value, NG=l.NG, B=l.B, eps = 1.0e-8)::Array{Complex{F
     latsum = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
     for k in -NG:NG, n in -NG:NG, m in 0:0
         G = B * [k, n, m]
-        println("kv= ", k_v, "G= ", G)
         H_inv = getHinv(G, k_v, p.k_1)
         if k == 0 && n == 0
             IPvec = Qq[1,:]
