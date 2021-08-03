@@ -160,7 +160,7 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     uuu = absGs*l.R
     uuy = Gys*l.R
     uuz = Gzs*l.R
-    Qq,Pp0,IPvec = IPcoefficients(uuu,uuy,uuz,deg)
+    Qq,Pp0,IPvec = VecIPcoefficients(uuu,uuy,uuz,deg)
     if deg[1]+deg[2] == 0
         IPvec = dropdims(IPvec,dims=1)
         IPvecconj = conj.(IPvec)
