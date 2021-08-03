@@ -11,7 +11,7 @@ include("methods.jl")
 include("depr_vectorized.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
-freq = 828
+freq = 400
 λ = 2.99792458e5/freq      #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
@@ -35,10 +35,4 @@ end
 Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
 
-new = getpolyxM(polydegs,0.02+0.01im,NG,l.B)
-old = VecgetpolyxM(polydegs,0.02+0.01im)
-
-println()
-println(new)
-println(old)
-println(norm(old.-new))
+ks, cs = getpolyxMode(polydegs,manual_ks=[0im,0im])
