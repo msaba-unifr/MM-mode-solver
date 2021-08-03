@@ -27,7 +27,7 @@ if mmdim == 1
     V_2 = 2*Rad                              #Volume definition required
 elseif mmdim == 2
     V_2 = pi*Rad^2
-    polydegs = (2,2)    #maximum degrees (N,M) of polynomial to approximate the current in the d-sphere c=
+    polydegs = (0,0)    #maximum degrees (N,M) of polynomial to approximate the current in the d-sphere c=
 end
 
 #Code starts here
@@ -35,4 +35,5 @@ end
 Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
 
-ks, cs = VecgetpolyxMode(polydegs,manual_ks=[])
+kmodes, cvecs = getpolyxMode(polydegs,manual_ks=[0.00016749077375082647 + 0.02663542855877462im,
+0.013559231069713929 + 6.978601628548177e-6im])

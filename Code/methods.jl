@@ -27,32 +27,32 @@ end
 
 function getpolyxMode(deg;manual_ks=[0im,0im])
 
-    o_vec = zeros(ComplexF64, (3,1))
-    𝓗invs = VecgetHinv(Gs,o_vec, p.k_1)
-    #InitialGuess
-    eigs_init = getQEPpolyx(deg,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
-    l.V_2, l.V)
-    λs,vs = eigs_init.values, eigs_init.vectors
-
     ks = zeros(ComplexF64,(2))
     dim = 3*((deg[1]+1)*(deg[2]+1))
-    cs = zeros(ComplexF64,(dim,2))
-
-    for (i, λ_val) in enumerate(λs)
-
-        if real(λ_val) <= 0
-            continue
-        elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.eps_1*p.k_0^2)) < 1e-8
-            continue
-        end
-        if ks[1] == 0
-            ks[1] = λs[i]
-            cs[:, 1] = vs[dim+1:2*dim, i]
-        else
-            ks[2] = λs[i]
-            cs[:, 2] = vs[dim+1:2*dim, i]
-        end
-    end
+    # cs = zeros(ComplexF64,(dim,2))
+    #
+    # o_vec = zeros(ComplexF64, (3,1))
+    # 𝓗invs = VecgetHinv(Gs,o_vec, p.k_1)
+    # #InitialGuess
+    # eigs_init = getQEPpolyx(deg,𝓗invs, p.k_1, p.k_2, p.k_x, p.k_y,
+    # l.V_2, l.V)
+    # λs,vs = eigs_init.values, eigs_init.vectors
+    #
+    # for (i, λ_val) in enumerate(λs)
+    #
+    #     if real(λ_val) <= 0
+    #         continue
+    #     elseif abs(1- (λ_val^2+p.k_x^2+p.k_y^2)/(p.eps_1*p.k_0^2)) < 1e-8
+    #         continue
+    #     end
+    #     if ks[1] == 0
+    #         ks[1] = λs[i]
+    #         cs[:, 1] = vs[dim+1:2*dim, i]
+    #     else
+    #         ks[2] = λs[i]
+    #         cs[:, 2] = vs[dim+1:2*dim, i]
+    #     end
+    # end
     if norm(manual_ks) != 0
         ks = manual_ks
     end

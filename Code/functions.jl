@@ -183,14 +183,14 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function getpolyxM(deg, λ_value, NG, B, eps = 1.0e-8)::Array{Complex{Float64},2}
+function getpolyxM(deg, λ_value, NG=l.NG, B=l.B, eps = 1.0e-8)::Array{Complex{Float64},2}
 
     k_v = [p.k_x ; p.k_y; λ_value]
     Qq, Pp0, deg_list = getQq(deg)
     latsum = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
     for k in -NG:NG, n in -NG:NG, m in 0:0
-
         G = B * [k, n, m]
+        println("kv= ", k_v, "G= ", G)
         H_inv = getHinv(G, k_v, p.k_1)
         if k == 0 && n == 0
             IPvec = Qq[1,:]
@@ -198,7 +198,7 @@ function getpolyxM(deg, λ_value, NG, B, eps = 1.0e-8)::Array{Complex{Float64},2
             IPvec = getIPvec(G, deg, deg_list)
         end
         latsum += kron((IPvec * IPvec'), H_inv)
-        #println("k= ", k, "n= ", n , "  ||  ", maximum(abs.(kron((IPvec * conj(IPvec)'), H_inv))))
+        # println("k= ", k, "n= ", n , "  ||  ", maximum(abs.(kron((IPvec * conj(IPvec)'), H_inv))))
     end
     return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
@@ -209,18 +209,17 @@ function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
             det(getpolyxM(deg,λ_value-eps)))/(2*eps)
 end
 
-function polyxNewton(deg,init, maxiter=1000, tol2=5e-9)
+function polyxNewton(deg,kinit, maxiter=1000, tol2=5e-9)
 
-    k = init
     for nn in 1:maxiter
-        phik = det(getpolyxM(deg,k))
-        knew = k - phik / getpolyxMder(deg,k)
-        delk = abs(1 - knew / k)
+        phik = det(getpolyxM(deg,kinit))
+        knew = kinit - phik / getpolyxMder(deg,kinit)
+        delk = abs(1 - knew / kinit)
         if delk < tol2
             global knew = knew
             break
         end
-        k = knew
+        kinit = knew
         nn == maxiter ? throw("No conv in Newton") : nothing
     end
     return knew
