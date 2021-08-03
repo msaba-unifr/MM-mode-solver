@@ -42,7 +42,7 @@ open(bands_path, "a") do io
     write(io, string(now(),"\nFrequency Re(k1) Im(k1) Re(k2) Im(k2)\n"))
 end
 sorttol = 1e-2
-init_k = []
+init_k = [ 0.0004376494248136995 + 0.019498110004211807im,   0.02883857058875105 + 0.00031740992926030585im]
 t1=time()
 for freq in collect(freq_sweep)
     λ = speed_of_light / freq
@@ -53,6 +53,6 @@ for freq in collect(freq_sweep)
     open(bands_path, "a") do io
         writedlm(io, hcat(real.(freq), real.(kmode[1]), imag.(kmode[1]), real.(kmode[2]), imag(kmode[2])))
     end
-    init_k = kmode
+    global init_k = kmode
     @printf("Runtime for %f nm was %f minutes, finished @ %s\n",wl,(time()-t1)/60,Dates.format(now(), "HHhMM"));global t1=time()
 end
