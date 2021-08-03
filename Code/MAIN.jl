@@ -13,7 +13,7 @@ include("parameters.jl")
 include("methods.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
-freq = 828
+freq = 400
 λ = 2.99792458e5/freq     #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
@@ -40,10 +40,8 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
 @printf("Init workspace took %f minutes.\n",(time()-t0)/60); t1=time()
 
-# ksols,csols = getpolyxMode((0,0))
+ksols,csols = getpolyxMode((0,0))
 # @printf("Polydegs=(0,0) took %f minutes.\n",(time()-t1)/60); t1=time()
-
-evpmatrix = getpolyxM(polydegs, 1.1*2π/λ)
 
 # ksolspoly,csolspoly = getpolyxMode(polydegs)
 # ksolspoly,csolspoly = getpolyxMode(polydegs,manual_ks=[0.0015771808183502327 + 0.010102987456903237im, 0.26708433159818806 + 0.045394802224430230im])
