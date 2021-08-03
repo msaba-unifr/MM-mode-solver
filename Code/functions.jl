@@ -47,7 +47,7 @@ end
 function getHinv(G, k_v, k_1)::Array{Complex{Float64},2}
     #Creating 𝓗⁻¹#
     # Adding vectors
-    k_v = reshape(k_v, (3,1))
+    # k_v = reshape(k_v, (3,1))
     kG = k_v + G
     #Creating TensorProduct
     outM = kG * transpose(kG)
@@ -81,7 +81,7 @@ function polyxDiskIP(G ,degmn)
         return 0.0 + 0.0im
     end
     uuu = abs_G*l.R
-    Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1))
+    Summands = zeros(ComplexF64,(floor(Int,m/2)+1,floor(Int,n/2)+1))
     uuuy = G[2]*l.R
     uuuz = G[3]*l.R
     cαm = RecurCoef(degmn)
@@ -186,16 +186,19 @@ end
 function getpolyxM(deg, λ_value, NG=l.NG, B=l.B, eps = 1.0e-8)::Array{Complex{Float64},2}
 
     k_v = [p.k_x ; p.k_y; λ_value]
+    k_v = reshape(k_v, (3,1))
     Qq, Pp0, deg_list = getQq(deg)
     latsum = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
     for k in -NG:NG, n in -NG:NG, m in 0:0
         G = B * [k, n, m]
         H_inv = getHinv(G, k_v, p.k_1)
-        if k == 0 && n == 0
-            IPvec = Qq[1,:]
-        else
-            IPvec = getIPvec(G, deg, deg_list)
-        end
+        # if k == 0 && n == 0
+        #     IPvec = Qq[1,:]
+        # else
+        #     IPvec = getIPvec(G, deg, deg_list)
+        # end
+        kG = k_v + G
+        IPvec = getIPvec(kG, deg, deg_list)
         latsum += kron((IPvec * IPvec'), H_inv)
         # println("k= ", k, "n= ", n , "  ||  ", maximum(abs.(kron((IPvec * conj(IPvec)'), H_inv))))
     end
