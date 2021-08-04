@@ -40,7 +40,7 @@ Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
 
 freq_sweep = 900 : -2 : 824
 speed_of_light = 2.99792458e5
-bands_path = string(pwd(), "\\Results\\BS_wKappa.dat")
+bands_path = string(pwd(), "\\Results\\BS_wKappa_topbranch.dat")
 open(bands_path, "a") do io
     write(io, string(now(),"\nFrequency Re(k1) Im(k1) Re(k2) Im(k2)\n"))
 end
