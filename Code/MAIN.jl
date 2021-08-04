@@ -39,7 +39,7 @@ end
 # kmode = getpolyxMode(polydegs,manual_ks=init_k)[1]
 
 freq_step_size = .5
-freq_sweep = 822 : freq_step_size : 900
+freq_sweep = 821 : freq_step_size : 900
 speed_of_light = 2.99792458e5
 bands_path = string(pwd(), "\\Results\\BS_wKappa_interpol-test.dat")
 open(bands_path, "a") do io
@@ -55,12 +55,13 @@ for (fr, freq) in enumerate(collect(freq_sweep))
         ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
     println(p.lambda)
     if fr == 1
-        init_k = manual_init_k
+        local init_k = manual_init_k
     elseif fr == 2
-        init_k = kmodes[fr-1,:]
+        local init_k = kmodes[fr-1,:]
     else
-        init_k = 2*kmodes[fr-1,:] - kmodes[fr-2,:]
+        local init_k = 2*kmodes[fr-1,:] - kmodes[fr-2,:]
     end
+    println("init_k = ",init_k)
     kmodes[fr,:] = getpolyxMode(polydegs,manual_ks=init_k)[1]
     open(bands_path, "a") do io
         writedlm(io, hcat(real.(freq), real.(kmodes[fr,1]), imag.(kmodes[fr,1]), real.(kmodes[fr,2]), imag(kmodes[fr,2])))
