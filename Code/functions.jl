@@ -31,19 +31,6 @@ function BessQnoDC(n,x)
     end
 end
 
-
-function getGspace(mmdim)
-    space_ax = -l.NG:1.0:l.NG
-    if mmdim == 1
-        Gs = [l.B*[h,k,n] for h in space_ax, k in 0:0, n in 0:0]
-        Gs = [Gs[h,k,n][i] for i in 1:3, h in 1:2*l.NG+1, k in 1:1, n in 1:1]
-    elseif mmdim == 2
-        Gs = [l.B*[h,k,n] for h in space_ax, k in space_ax, n in 0:0]
-        Gs = [Gs[h,k,n][i] for i in 1:3, h in 1:2*l.NG+1, k in 1:2*l.NG+1, n in 1:1]
-    end
-    return Gs
-end
-
 function getHinv(G, k_v, k_1)::Array{Complex{Float64},2}
     #Creating 𝓗⁻¹#
     # Adding vectors
@@ -183,20 +170,20 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function getpolyxM(deg, λ_value, NG=l.NG, B=l.B, eps = 1.0e-8)::Array{Complex{Float64},2}
+function summand(G::Array{Float64,1},deg,deg_list,k_v,l::Lattice,p::Parameters)
+    H_inv = getHinv(G, k_v, p.k_1)
+    kG = k_v + G
+    IPvec = getIPvec(kG, deg, deg_list)
+    return kron((IPvec * IPvec'), H_inv)
+end
 
-    k_v = [p.k_x ; p.k_y; λ_value]
-    k_v = reshape(k_v, (3,1))
+function getpolyxM(deg, λ_value, l::Lattice, p::Parameters)
+
+    k_v = reshape([p.k_x ; p.k_y; λ_value], (3,1))
     Qq, Pp0, deg_list = getQq(deg)
     latsum = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
-    for k in -NG:NG, n in -NG:NG, m in 0:0
-        G = B * [k, n, m]
+    for G in l.Gs
         H_inv = getHinv(G, k_v, p.k_1)
-        # if k == 0 && n == 0
-        #     IPvec = Qq[1,:]
-        # else
-        #     IPvec = getIPvec(G, deg, deg_list)
-        # end
         kG = k_v + G
         IPvec = getIPvec(kG, deg, deg_list)
         latsum += kron((IPvec * IPvec'), H_inv)
@@ -231,10 +218,10 @@ function doublefactorial(n::Integer)
     if n <= 0
         return 1
     elseif isodd(n)
-        k = (n+1)/2
-        return factorial(2*k) / 2^k / factorial(k)
+        k = (n+1) ÷ 2
+        return factorial(2*k) ÷ 2^k ÷ factorial(k)
     else
-        k = n/2
+        k = n ÷ 2
         return 2^k * factorial(k)
     end
 end

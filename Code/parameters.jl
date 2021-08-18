@@ -15,28 +15,25 @@ Derived parameters (wave numbers in 1/nm):
     k_2    = wave number in cylinder domain
 """
 struct Parameters
-    lambda::AbstractFloat
-    azim::AbstractFloat
-    polar::AbstractFloat
-    eps_1::AbstractFloat
-    eps_2::Complex
-    k_0::AbstractFloat
-    k_x::AbstractFloat
-    k_y::AbstractFloat
-    k_1::Complex
-    k_2::Complex
+    lambda::Float64
+    azim::Float64
+    polar::Float64
+    eps_1::Float64
+    eps_2::ComplexF64
+    k_0::Float64
+    k_x::Float64
+    k_y::Float64
+    k_1::ComplexF64
+    k_2::ComplexF64
+    function Parameters(lambda, azim, polar, eps_1, eps_2)
+        k_0 = 2*pi/lambda
+        k_x = k_0 * cos(azim/180*pi) * sin(polar/180*pi)
+        k_y = k_0 * sin(azim/180*pi) * sin(polar/180*pi)
+        k_1 = k_0 * sqrt(eps_1)
+        k_2 = k_0 * sqrt(eps_2)
+        new(lambda,azim,polar,eps_1,eps_2,k_0,k_x,k_y,k_1,k_2)
+    end
 end
-
-Parameters(lambda, azim, polar, eps_1, eps_2) = Parameters(lambda,
-    azim,
-    polar,
-    eps_1,
-    eps_2,
-    2*pi/lambda,
-    2*pi/lambda*cos(azim/180*pi) * sin(polar/180*pi),
-    2*pi/lambda*sin(azim/180*pi) * sin(polar/180*pi),
-    2*pi/lambda*sqrt(eps_1),
-    2*pi/lambda*sqrt(eps_2))
 
 """
     Stores geometrical and lattice parameters.
@@ -51,17 +48,18 @@ Deriver parameters (reciprocal lattice vectors in 1/nm, length in nm, volume in 
     V_2 = volume of domain 2
 """
 struct Lattice
-    NG
-    A
-    R
-    B
-    V
-    V_2
+    NG::Int
+    Gs::Array{Array{Float64,1},3}
+    A::Array{Float64,2}
+    R::Float64
+    B::Array{Float64,2}
+    V::Float64
+    V_2::Float64
+    function Lattice(NG::Int,A::Array{Float64,2},R::Float64)
+        B = 2*pi*[0 0 0; inv(A)[1,1] inv(A)[2,1] 0; inv(A)[1,2] inv(A)[2,2] 0]
+        Gs = [B*[h,k,n] for h in -NG:1:NG, k in -NG:1:NG, n in 0:0]
+        V = abs(det(A))
+        V_2 = pi*R^2
+        new(NG,Gs,A,R,B,V,V_2)
+    end
 end
-
-Lattice1D(NG,a,R) = Lattice(NG, a, R,2*pi/a*[0 0 0; 0 0 0; 1 0 0],a,2*R)
-
-Lattice2D(NG,A,R) = Lattice(NG, A, R,
-2*pi*[0 0 0; inv(A)[1,1] inv(A)[2,1] 0; inv(A)[1,2] inv(A)[2,2] 0],abs(det(A)),pi*R^2)
-
-Lattice3D(NG,A,R) = Lattice(NG, A, R, 2*pi*inv(A)', abs(det(A)),3/4*pi*R^3)
