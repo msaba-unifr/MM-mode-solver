@@ -5,7 +5,6 @@ using SpecialFunctions
 using DelimitedFiles
 using Interpolations
 using Dates
-using Distributed
 
 include("parameters.jl")
 include("methods.jl")
@@ -37,7 +36,6 @@ l,p = Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
                     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
 println()
 t0 = time()
-M = getpolyxM(polydegs,0.02+0.001im,l,p)
 println(time()-t0)
 # init_k = [ 0.0004376494248136995 + 0.019498110004211807im,   0.02883857058875105 + 0.00031740992926030585im] # for 700 THz
 # kmode = getpolyxMode(polydegs,manual_ks=init_k)[1]
