@@ -22,7 +22,7 @@ function InnerProd(x,mmdim;exclude_DC=false)
     end
 end
 
-function BessQnoDC(n,x)
+function BessQnoDC(n::Int,x)
     #
     if x == 0
         return 0
@@ -33,12 +33,8 @@ end
 
 function getHinv(kG::Array{ComplexF64,1}, k_1)
     #Creating TensorProduct
-    outM = kG * transpose(kG)
-    #Computing inverse
-    H_factor = 1 ./ (k_1^2 .- sum(kG.^2))
-    outM = Matrix{ComplexF64}(I,3,3) .- outM / k_1^2
-    outM = H_factor * outM
-    return outM
+    return ( Matrix{ComplexF64}(I,3,3) - (kG * transpose(kG)) / k_1^2 ) /
+            (k_1^2 - sum(kG.^2))
 end
 
 function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
@@ -122,8 +118,18 @@ function getQq(deg)
 end
 
 function getBessels(maxdeg,G,l::Lattice)
-    abs_G = sqrt(sum(G.^2))
-    return [BessQnoDC(n,abs_G*l.R) for n in 1:maxdeg]
+    u = sqrt(sum(G.^2))*l.R
+    Bessels = zeros(ComplexF64,(maxdeg))
+    Bessels[1] = BessQnoDC(1,u)
+    if maxdeg > 1
+        Bessels[2] = BessQnoDC(2,u)
+        if maxdeg > 2
+            for n in 3:maxdeg
+                Bessels[n] = 2*(n-1)/u*Bessels[n-1]-Bessels[n-2]
+            end
+        end
+    end
+    return Bessels
 end
 
 function getIPvec(G, deg, degreelist,l::Lattice)
