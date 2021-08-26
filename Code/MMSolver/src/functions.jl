@@ -60,7 +60,7 @@ function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function polyxDiskIP(G ,degmn,l::Lattice)
+function polyxDiskIP(G ,degmn,Bessels,l::Lattice)
     m=degmn[1]
     n=degmn[2]
     abs_G = sqrt(sum(G.^2))
@@ -68,22 +68,18 @@ function polyxDiskIP(G ,degmn,l::Lattice)
         return 0.0 + 0.0im
     end
     uuu = abs_G*l.R
-    Summands = zeros(ComplexF64,(floor(Int,m/2)+1,floor(Int,n/2)+1))
+    Sum = 0im
     uuuy = G[2]*l.R
     uuuz = G[3]*l.R
     cαm = RecurCoef(degmn)
     for α in 0:floor(Int,m/2)
         for β in 0:floor(Int,n/2)
-            Summands[α+1,β+1] = (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] *
+            Sum += (-1)^(α+β) * cαm[m+1,α+1] * cαm[n+1,β+1] *
                 uuuy^(m-2*α)*uuuz^(n-2*β)/uuu^(m+n-α-β) *
-                    BessQnoDC(m+n-α-β+1,uuu)
-                    if G == zeros(size(G))
-                        println("G= ", G, "  ||  ", Summands[α+1,β+1])
-                    end
+                    Bessels[m+n-α-β+1]
         end
     end
-    #Summands[:,:,l.NG+1,l.NG+1,:] .= 0 #should not be necessary
-    return sum(Summands)
+    return Sum
 end
 
 function RecurCoef(degmn)
@@ -129,12 +125,17 @@ function getQq(deg)
     return Qq, Pp0, degreelist
 end
 
-function getIPvec(G, deg, degreelist,l::Lattice)
+function getBessels(maxdeg,G,l::Lattice)
+    abs_G = sqrt(sum(G.^2))
+    return [BessQnoDC(n,abs_G*l.R) for n in 1:maxdeg]
+end
 
+function getIPvec(G, deg, degreelist,l::Lattice)
+    Bessels = getBessels(deg[1]+deg[2]+1,G,l)
     IPvec = zeros(ComplexF64,(size(degreelist,2)))
     for i in 1:((deg[1]+1)*(deg[2]+1))
         degmn = degreelist[:,i]
-        IPvec[i] = 2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(G ,degmn,l)
+        IPvec[i] = 2 * 1im^(degmn[1]+degmn[2]) * polyxDiskIP(G ,degmn,Bessels,l)
     end
     return IPvec
 end
