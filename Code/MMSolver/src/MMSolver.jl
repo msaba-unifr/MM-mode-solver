@@ -30,24 +30,22 @@ function init_workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
 end
 
 function get_polyx_mode(deg,l::Lattice,p::Parameters;manual_ks=[0im,0im])
-
     ks = zeros(ComplexF64,(2))
     dim = 3*((deg[1]+1)*(deg[2]+1))
     if norm(manual_ks) != 0
         ks = manual_ks
     end
-
     #Solve NLEVP for each non filtered mode
     ksols = zeros(ComplexF64,(2))
     csols = zeros(ComplexF64,(dim,2))
+    Niters = zeros(Int,(2))
     for mode = 1:2
-        k_sol = polyxNewton(deg,ks[mode],l,p)
+        k_sol,Niters[mode] = polyxNewton(deg,ks[mode],l,p)
         c_sol = qr(transpose(conj(getpolyxM(deg,k_sol,l,p))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end
-    return ksols, csols
+    return ksols, csols, Niters
 end
-
 
 end # module
