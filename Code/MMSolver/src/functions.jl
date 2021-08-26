@@ -31,11 +31,7 @@ function BessQnoDC(n,x)
     end
 end
 
-function getHinv(G, k_v, k_1)::Array{Complex{Float64},2}
-    #Creating 𝓗⁻¹#
-    # Adding vectors
-    # k_v = reshape(k_v, (3,1))
-    kG = k_v + G
+function getHinv(kG::Array{ComplexF64,1}, k_1)
     #Creating TensorProduct
     outM = kG * transpose(kG)
     #Computing inverse
@@ -171,19 +167,18 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function summand(G::Array{Float64,1},deg,deg_list,k_v,l::Lattice,p::Parameters)
-    H_inv = getHinv(G, k_v, p.k_1)
-    kG = k_v + G
+function summand(kG::Array{ComplexF64,1},deg,deg_list,l::Lattice,p::Parameters)
+    H_inv = getHinv(kG, p.k_1)
     IPvec = getIPvec(kG, deg, deg_list,l)
     return kron((IPvec * IPvec'), H_inv)
 end
 
 function getpolyxM(deg, λ_value, l::Lattice, p::Parameters)
 
-    k_v = reshape([p.k_x ; p.k_y; λ_value], (3,1))
+    k_v = [p.k_x, p.k_y, λ_value]
     Qq, Pp0, deg_list = getQq(deg)
     latsum::Array{ComplexF64,2} = @distributed (+) for G in l.Gs
-        summand(G,deg,deg_list,k_v,l,p)
+        summand(k_v+G,deg,deg_list,l,p)
     end
     return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
@@ -195,19 +190,19 @@ function getpolyxMder(deg,λ_value,l::Lattice,p::Parameters, eps = 1.0e-8)::Comp
 end
 
 function polyxNewton(deg,kinit,l::Lattice,p::Parameters, maxiter=1000, tol2=5e-9)
-
+    k_conv = 0im
     for nn in 1:maxiter
         phik = det(getpolyxM(deg,kinit,l,p))
         knew = kinit - phik / getpolyxMder(deg,kinit,l,p)
         delk = abs(1 - knew / kinit)
         if delk < tol2
-            global knew = knew
+            k_conv = knew
             break
         end
         kinit = knew
         nn == maxiter ? throw("No conv in Newton") : nothing
     end
-    return knew
+    return k_conv
 end
 
 function doublefactorial(n::Integer)
