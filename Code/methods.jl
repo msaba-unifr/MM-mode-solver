@@ -17,7 +17,7 @@ function Init_Workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
     return Lattice(NG,A,Rad), Parameters(λ, φ, θ, ϵ_1, ϵ_2)
 end
 
-function getpolyxMode(deg;manual_ks=[0im,0im])
+function getpolyxMode(deg, l::Lattice, p::Parameters; manual_ks=[0im,0im])
 
     ks = zeros(ComplexF64,(2))
     dim = 3*((deg[1]+1)*(deg[2]+1))
@@ -29,8 +29,8 @@ function getpolyxMode(deg;manual_ks=[0im,0im])
     ksols = zeros(ComplexF64,(2))
     csols = zeros(ComplexF64,(dim,2))
     for mode = 1:2
-        k_sol = polyxNewton(deg,ks[mode])
-        c_sol = qr(transpose(conj(getpolyxM(deg,k_sol))), Val(true)).Q[:,end]
+        k_sol = polyxNewton(deg,ks[mode], l, p)
+        c_sol = qr(transpose(conj(getpolyxM(deg,k_sol, l, p))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end

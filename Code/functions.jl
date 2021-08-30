@@ -192,17 +192,17 @@ function getpolyxM(deg, λ_value, l::Lattice, p::Parameters)
     return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
 
-function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
+function getpolyxMder(deg,λ_value, l::Lattice, p::Parameters, eps = 1.0e-8)::Complex{Float64}
 
-    return (det(getpolyxM(deg,λ_value+eps)) -
-            det(getpolyxM(deg,λ_value-eps)))/(2*eps)
+    return (det(getpolyxM(deg,λ_value+eps, l, p)) -
+            det(getpolyxM(deg,λ_value-eps, l, p)))/(2*eps)
 end
 
-function polyxNewton(deg,kinit, maxiter=1000, tol2=5e-9)
+function polyxNewton(deg,kinit, l::Lattice, p::Parameters, maxiter=1000, tol2=5e-9)
 
     for nn in 1:maxiter
-        phik = det(getpolyxM(deg,kinit))
-        knew = kinit - phik / getpolyxMder(deg,kinit)
+        phik = det(getpolyxM(deg,kinit, l, p))
+        knew = kinit - phik / getpolyxMder(deg,kinit, l, p)
         delk = abs(1 - knew / kinit)
         if delk < tol2
             global knew = knew
