@@ -1,6 +1,6 @@
 module MMSolver
 
-export init_workspace, get_polyx_mode
+export init_workspace, get_polyx_mode, getpolyxM
 
 using Distributed
 using LinearAlgebra
