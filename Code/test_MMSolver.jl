@@ -28,14 +28,14 @@ for freq in [821,750]
     lattice,parameters = init_workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
                         ϵ_2 = mat_file, A = A, Rad = Rad)
 
-    REbounds = [-2*pi/(sqrt(3)*30),2*pi/(sqrt(3)*30)] #Brillouin Zone: +/- 2*pi/(sqrt(3)*30)
-    IMbounds = [-0.05,0.05]
-    REheatres, IMheatres = 200, 100
-    RErange = LinRange(REbounds[1],REbounds[2],REheatres)
-    IMrange = LinRange(IMbounds[1],IMbounds[2],IMheatres)
+    local REbounds = [-2*pi/(sqrt(3)*30),2*pi/(sqrt(3)*30)] #Brillouin Zone: +/- 2*pi/(sqrt(3)*30)
+    local IMbounds = [-0.05,0.05]
+    local REheatres, IMheatres = 200, 100
+    local RErange = LinRange(REbounds[1],REbounds[2],REheatres)
+    local IMrange = LinRange(IMbounds[1],IMbounds[2],IMheatres)
 
-    real_cont, imag_cont = det_contours(RErange, IMrange, polydegs, lattice, parameters)
-    p1 = contour(RErange,IMrange,real_cont,levels=[0],fill=false,c=:red)
+    local real_cont, imag_cont = det_contours(RErange, IMrange, polydegs, lattice, parameters)
+    local p1 = contour(RErange,IMrange,real_cont,levels=[0],fill=false,c=:red)
     contour!(RErange,IMrange,imag_cont,levels=[0],fill=false,c=:blue)
     plot(p1,title = string("contoursReIm(det(M)) ",2.99792458e5/parameters.lambda))
     savefig(string(pwd(),"\\Results\\contoursdetM_heatmap_",freq,".png"))
