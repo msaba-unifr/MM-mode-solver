@@ -13,7 +13,14 @@ function det_heatmap(REheatres, IMheatres, REbounds, IMbounds, polydegs, lattice
         heatMDet = [log(abs(det(getpolyxM(polydegs,x+y*im,lattice,parameters)))) for y in IMrange, x in RErange]
         title_HM = string("abs(det(M)) ",2.99792458e5/parameters.lambda)
     end
-    return heatmap(RErange,IMrange,heatMDet,title=title_HM)
+    return contour(RErange,IMrange,heatMDet,title=title_HM,levels=[0],fill=false)
+end
+
+function det_contours(RErange, IMrange, polydegs, lattice, parameters)
+    heatMDet = [det(getpolyxM(polydegs,x+y*im,lattice,parameters)) for y in IMrange, x in RErange]
+    heatMDet_imag = imag.(heatMDet)
+    heatMDet_real = real.(heatMDet)
+    return heatMDet_real, heatMDet_imag
 end
 
 function eigenvalues_Mk(polydegs,manual_k,lattice,parameters)
