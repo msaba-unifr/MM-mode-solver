@@ -52,7 +52,7 @@ function getInitGuess(InnerP, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function polyxDiskIP(G ,degmn,Bessels,l::Lattice)
+function polyxDiskIP(G,degmn,Bessels,l::Lattice)
     m=degmn[1]
     n=degmn[2]
     abs_G = sqrt(sum(G.^2))
@@ -173,9 +173,13 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function summand(kG::Array{ComplexF64,1},deg,deg_list,l::Lattice,p::Parameters)
-    H_inv = getHinv(kG, p.k_1)
-    IPvec = getIPvec(kG, deg, deg_list,l)
+function summand(k_v::Array{ComplexF64,1},G::Array{Float64,1},IP_DC,deg,deg_list,l::Lattice,p::Parameters)
+    H_inv = getHinv(k_v+G, p.k_1)
+    if G == zeros(size(G))
+        IPvec = IP_DC
+    else
+        IPvec = getIPvec(G, deg, deg_list,l)
+    end
     return kron((IPvec * IPvec'), H_inv)
 end
 
@@ -184,7 +188,7 @@ function getpolyxM(deg, λ, l::Lattice, p::Parameters)
     k_v = [p.k_x, p.k_y, λ]
     Qq, Pp0, deg_list = getQq(deg)
     latsum::Array{ComplexF64,2} = @distributed (+) for G in l.Gs
-        summand(k_v+G,deg,deg_list,l,p)
+        summand(k_v,G,Qq[1,:],deg,deg_list,l,p)
     end
     return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end

@@ -11,13 +11,13 @@ addprocs(4)
 include("heatmap.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
-for freq in [821,750]
+for freq in 820:1:840
 # freq = 700
     println(freq)
     λ = 2.99792458e5/freq      #wavelength in nm
     φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
     θ = 0       #polar angle of incidence
-    NG = 100    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+    NG = 10    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
     ϵ_bg = 1 + 0im  #permittivity of background medium
     mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
     a = 30.0    #lattice constant
@@ -29,7 +29,7 @@ for freq in [821,750]
                         ϵ_2 = mat_file, A = A, Rad = Rad)
 
     REbounds = [-2*pi/(sqrt(3)*30),2*pi/(sqrt(3)*30)] #Brillouin Zone: +/- 2*pi/(sqrt(3)*30)
-    IMbounds = [-0.05,0.05]
+    IMbounds = [0,0.1]
     REheatres, IMheatres = 200, 100
     RErange = LinRange(REbounds[1],REbounds[2],REheatres)
     IMrange = LinRange(IMbounds[1],IMbounds[2],IMheatres)
@@ -38,7 +38,7 @@ for freq in [821,750]
     p1 = contour(RErange,IMrange,real_cont,levels=[0],fill=false,c=:red)
     contour!(RErange,IMrange,imag_cont,levels=[0],fill=false,c=:blue)
     plot(p1,title = string("contoursReIm(det(M)) ",2.99792458e5/parameters.lambda))
-    savefig(string(pwd(),"\\Results\\contoursdetM_heatmap_",freq,".png"))
+    savefig(string(pwd(),"\\Results\\TEST_contours_",freq,".png"))
 
 
 # savefig(det_map_imag,string(pwd(),"\\Results\\imagdetM_heatmap_",freq,".png"))
