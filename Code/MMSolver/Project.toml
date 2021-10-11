@@ -4,6 +4,7 @@ authors = ["msaba <matthias.saba@unifr.ch>"]
 version = "0.1.0"
 
 [deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Einsum = "b7d42ee7-0b51-5a75-98ca-779d3107e4c0"
