@@ -1,6 +1,6 @@
 module MMSolver
 
-export init_workspace, get_polyx_mode, getpolyxM
+export init_workspace, get_polyx_mode, getpolyxM, getE_Field
 
 using Distributed
 using LinearAlgebra
@@ -46,6 +46,24 @@ function get_polyx_mode(deg,l::Lattice,p::Parameters;manual_ks=[0im,0im])
         csols[:, mode] = c_sol
     end
     return ksols, csols, Niters
+end
+
+function getE_Field(polydegs, l, p, k_sol, c_sol, img_yrange, img_zrange, res)
+    Qq, Pp0, deg_list = MMSolver.getQq(polydegs)
+    ys = -img_yrange/2 : res : img_yrange/2
+    zs = -img_zrange/4 : res : 3*img_zrange/4
+
+    k_v = [p.k_x, p.k_y, k_sol]
+    E = zeros(ComplexF64,(3,length(ys),length(zs)))
+    for (ny,y) in enumerate(collect(ys))
+        for (nz,z) in enumerate(collect(zs))
+            latsum::Array{ComplexF64,2} = @distributed (+) for G in l.Gs
+                Efield_IP_summand(k_v,c_sol,G,polydegs,deg_list,l,p) * exp(1im*(k_v+G)[2]*y) * exp(1im*(k_v+G)[3]*z)
+            end
+            E[:,ny,nz] = latsum
+        end
+    end
+    return E
 end
 
 end # module
