@@ -241,3 +241,22 @@ function solve_analytical(params,lattice,TE=true)
     T = [Up V; -V Um]
     return eigen(T)
 end
+
+
+
+function Efield_IP_summand(k_v,c_sol,G,deg,deg_list, l, p)
+Qq, Pp0, deg_list = getQq(deg)
+    if G == zeros(size(G))
+        IPvec = Qq[1,:]
+    else
+        IPvec = getIPvec(G, deg, deg_list,l)
+    end
+    H_inv = getHinv(k_v+G, p.k_1)
+    Qqlen = (deg[1]+1)*(deg[2]+1)
+    summands = zeros(ComplexF64,(Qqlen,3))
+
+    for i in 1:(deg[1]+1)*(deg[2]+1)
+        summands[i,:] = IPvec[i]*H_inv*c_sol[3*i-2:3*i]
+    end
+    return 2*l.V_2/l.V * sum(summands,dims=1)
+end
