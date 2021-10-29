@@ -1,4 +1,4 @@
-using Distributed, BenchmarkTools, Plots, LinearAlgebra, DelimitedFiles
+using Distributed, BenchmarkTools, Plots, LinearAlgebra, DelimitedFiles, ColorSchemes
 rmprocs(2:1000)
 addprocs(4)
 
@@ -12,12 +12,12 @@ include("heatmap.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
 # for freq in 820:2:890
-freq = 820
+freq = 844
 println(freq)
 λ = 2.99792458e5/freq      #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
-NG = 100    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+NG = 50    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
 ϵ_bg = 1 + 0im  #permittivity of background medium
 mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
 a = 30.0    #lattice constant
@@ -29,23 +29,38 @@ lattice,parameters = init_workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = �
                     ϵ_2 = mat_file, A = A, Rad = Rad)
 
 
-tmmodes,tmvecs = get_polyx_mode(polydegs,lattice,parameters;manual_ks=[0.06+0.01im,0.02+0.09im])
+tmmodes,tmvecs = get_polyx_mode(polydegs,lattice,parameters;manual_ks=[0.2+0.09im,0.01+0.02im])
 println("Solutions: ",tmmodes)
 
 for mode in [1,2]
     # mode = 2
     img_yrange = a
-    img_zrange = sqrt(3)*a
+    img_zrange = 0.5*sqrt(3)*a
     res = 0.25
 
     field = getE_Field(polydegs, lattice, parameters, tmmodes[mode], tmvecs[:,mode], img_yrange, img_zrange, res)
 
-    E_I = dropdims(sum(abs.(field).^2,dims=1),dims=1)
-    pltnrm = maximum(E_I)
+    # E-Field intensity heatmap
+    # E_I = dropdims(sum(abs.(field).^2,dims=1),dims=1)
+    # pltnrm = maximum(E_I)
 
-    plt = heatmap(log10.(E_I/pltnrm),aspect_ratio=:equal)
-    plot(plt,title = string("E-Field, mode: ",mode,", ",2.99792458e5/parameters.lambda," THz"))
-    savefig(string(pwd(),"\\Results\\E-Field_TMk",mode,"_",freq,".png"))
+    # atan2 heatmap y/z
+    plot_data = atan.(real.(field[2,:,:])./real.(field[3,:,:]))
+
+    plt = heatmap(plot_data,aspect_ratio=:equal,color=:phase)
+    plot(plt,title = string("atan2(Re(Ey)/Re(Ez)), mode: ",mode,", ",2.99792458e5/parameters.lambda," THz"))
+
+    # integral over y-components
+    # plot_data = sum(field[2,:,:],dims=2)./sqrt.(sum(abs.(field[2,:,:]).^2,dims=2))
+    # plt = plot(plot_data,title = string(", mode: ",mode,", ",2.99792458e5/parameters.lambda," THz")
+
+    #Saving data, edit filenames!!
+    savefig(string(pwd(),"\\Results\\atan2_TMk",mode,"_",freq,".png"))
+
+    data_path_efield = string(pwd(),"\\Results\\efield_atan_",freq,"-mode",mode,".txt")
+    open(data_path_efield, "w") do io
+        writedlm(io, plot_data)
+    end
 end
 # REbounds = [-2*pi/(sqrt(3)*30),2*pi/(sqrt(3)*30)] #Brillouin Zone: +/- 2*pi/(sqrt(3)*30)
 # IMbounds = [0,0.1]
