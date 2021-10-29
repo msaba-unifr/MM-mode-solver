@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-using Distributed, BenchmarkTools, Plots, LinearAlgebra, DelimitedFiles, Dates
-=======
-using Distributed, BenchmarkTools, Plots, LinearAlgebra, DelimitedFiles, ColorSchemes
->>>>>>> 32ab0c25246fa180ec4b43091f28cd8843ca9598
+using Distributed, BenchmarkTools, Plots, LinearAlgebra, DelimitedFiles, ColorSchemes, Dates
 rmprocs(2:1000)
 addprocs(0)
 
