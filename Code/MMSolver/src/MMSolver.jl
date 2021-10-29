@@ -1,6 +1,6 @@
 module MMSolver
 
-export init_workspace, get_polyx_mode, getpolyxM, getE_Field
+export init_workspace, get_polyx_mode, getE_Field
 
 using Distributed
 using LinearAlgebra
@@ -51,7 +51,7 @@ end
 function getE_Field(polydegs, l, p, k_sol, c_sol, img_yrange, img_zrange, res)
     Qq, Pp0, deg_list = MMSolver.getQq(polydegs)
     ys = -img_yrange/2 : res : img_yrange/2
-    zs = -img_zrange/4 : res : 3*img_zrange/4
+    zs = -2*img_zrange/4 : res : 2*img_zrange/4
 
     k_v = [p.k_x, p.k_y, k_sol]
     E = zeros(ComplexF64,(3,length(ys),length(zs)))

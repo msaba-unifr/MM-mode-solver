@@ -242,8 +242,6 @@ function solve_analytical(params,lattice,TE=true)
     return eigen(T)
 end
 
-
-
 function Efield_IP_summand(k_v,c_sol,G,deg,deg_list, l, p)
 Qq, Pp0, deg_list = getQq(deg)
     if G == zeros(size(G))
