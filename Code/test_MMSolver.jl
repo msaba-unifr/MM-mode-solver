@@ -1,6 +1,6 @@
 using Distributed, BenchmarkTools, Plots, LinearAlgebra, DelimitedFiles, ColorSchemes, Dates
 rmprocs(2:1000)
-addprocs(0)
+addprocs(4)
 
 @everywhere using Pkg
 @everywhere Pkg.activate("./Code/MMSolver")
@@ -29,7 +29,8 @@ lattice,parameters = init_workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = �
                     ϵ_2 = mat_file, A = A, Rad = Rad)
 
 
-tmmodes,tmvecs = get_polyx_mode(polydegs,lattice,parameters;manual_ks=[0.2+0.09im,0.01+0.02im])
+# 820 THz manual_ks=[0.06+0.01im,0.02+0.09im], 844 THz manual_ks=[0.1+0.05im,0.02+0.05im], 880 THz manual_ks=[0.2+0.09im,0.01+0.02im]
+tmmodes,tmvecs = get_polyx_mode(polydegs,lattice,parameters;manual_ks=[0.1+0.05im,0.02+0.05im])
 println("Solutions: ",tmmodes)
 
 for mode in [1,2]
@@ -44,20 +45,24 @@ for mode in [1,2]
     # E_I = dropdims(sum(abs.(field).^2,dims=1),dims=1)
     # pltnrm = maximum(E_I)
 
-    # atan2 heatmap y/z
-    plot_data = atan.(real.(field[2,:,:])./real.(field[3,:,:]))
+    # atan2 heatmap y,z
+    plot_data = atan.(real.(field[3,:,:]),real.(field[2,:,:]))
 
     plt = heatmap(plot_data,aspect_ratio=:equal,color=:phase)
-    plot(plt,title = string("atan2(Re(Ey)/Re(Ez)), mode: ",mode,", ",2.99792458e5/parameters.lambda," THz"))
+    plot(plt,title = string("atan2(Re(Ez)/Re(Ey)), mode: ",mode,", ",2.99792458e5/parameters.lambda," THz"))
 
     # integral over y-components
-    # plot_data = sum(field[2,:,:],dims=2)./sqrt.(sum(abs.(field[2,:,:]).^2,dims=2))
-    # plt = plot(plot_data,title = string(", mode: ",mode,", ",2.99792458e5/parameters.lambda," THz")
+    # plot_data = (1/a)*sum(field[2,:,:],dims=2)./sqrt.((1/a)*sum(abs.(field[2,:,:]).^2,dims=2))
+    # plot_data = dropdims(plot_data,dims=2)
+    # plot(real.(plot_data),color=:red,label="Real part",title = string("<E_y>(z), mode: ",mode,", ",2.99792458e5/parameters.lambda," THz"))
+    # plot!(imag.(plot_data),color=:blue,label="Imag part")
+    # plot!(abs.(plot_data),color=:green,label="abs()")
 
     #Saving data, edit filenames!!
-    savefig(string(pwd(),"\\Results\\atan2_TMk",mode,"_",freq,".png"))
+    savefig(string(pwd(),"\\Results\\atan2(zy)_TMk",mode,"_",freq,".png"))
+    println("Saved mode ",mode," @ ",Dates.format(Dates.now(),"HH:MM"))
 
-    data_path_efield = string(pwd(),"\\Results\\efield_atan_",freq,"-mode",mode,".txt")
+    data_path_efield = string(pwd(),"\\Results\\atan2(zy)_",freq,"-TMk",mode,".txt")
     open(data_path_efield, "w") do io
         writedlm(io, plot_data)
     end
