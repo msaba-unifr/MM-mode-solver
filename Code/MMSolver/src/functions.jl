@@ -194,16 +194,16 @@ function getpolyxM(deg, λ, l::Lattice, p::Parameters)
 end
 
 function Newton_step(deg,λ,l::Lattice,p::Parameters, ϵ = 1.0e-10)::Complex{Float64}
-    println("abs(detM) = ",abs(det(getpolyxM(deg,λ+ϵ,l,p))))
-    println("NewtonStep = ",ϵ / (det(getpolyxM(deg,λ+ϵ,l,p))/det(getpolyxM(deg,λ,l,p)) - 1))
-    println("derivative = ",(det(getpolyxM(deg,λ+ϵ,l,p))-det(getpolyxM(deg,λ,l,p)))/ϵ)
+    # println("abs(detM) = ",abs(det(getpolyxM(deg,λ+ϵ,l,p))))
+    # println("NewtonStep = ",ϵ / (det(getpolyxM(deg,λ+ϵ,l,p))/det(getpolyxM(deg,λ,l,p)) - 1))
+    # println("derivative = ",(det(getpolyxM(deg,λ+ϵ,l,p))-det(getpolyxM(deg,λ,l,p)))/ϵ)
     return ϵ / (det(getpolyxM(deg,λ+ϵ,l,p))/det(getpolyxM(deg,λ,l,p)) - 1)
 end
 
 function polyxNewton(deg,kinit,l::Lattice,p::Parameters, maxiter=1000, tol2=5e-9)
     for nn in 1:maxiter
         knew = kinit - Newton_step(deg,kinit,l,p)
-        println("knew = ",knew)
+        # println("knew = ",knew)
         delk = abs(1 - knew / kinit)
         if delk < tol2
             return knew,nn

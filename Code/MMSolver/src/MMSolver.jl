@@ -1,6 +1,6 @@
 module MMSolver
 
-export init_workspace, get_polyx_mode, getE_Field
+export init_workspace, get_polyx_mode, getE_Field, get_single_mode
 
 using Distributed
 using LinearAlgebra
@@ -45,6 +45,22 @@ function get_polyx_mode(deg,l::Lattice,p::Parameters;manual_ks=[0im,0im])
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end
+    return ksols, csols, Niters
+end
+
+function get_single_mode(deg,l::Lattice,p::Parameters;manual_ks)
+    ks = 0im
+    dim = 3*((deg[1]+1)*(deg[2]+1))
+    if norm(manual_ks) != 0
+        ks = manual_ks
+    end
+    println(ks)
+    #Solve NLEVP for each non filtered mode
+    ksols = 0im
+    csols = zeros(ComplexF64,(dim,1))
+    Niters = 0
+    ksols,Niters = polyxNewton(deg,ks,l,p)
+    csols = qr(transpose(conj(getpolyxM(deg,ksols,l,p))), Val(true)).Q[:,end]
     return ksols, csols, Niters
 end
 
