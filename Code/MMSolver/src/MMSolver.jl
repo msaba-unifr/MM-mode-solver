@@ -68,10 +68,11 @@ function getE_Field(polydegs, l, p, k_sol, c_sol, img_yrange, img_zrange, res)
     Qq, Pp0, deg_list = MMSolver.getQq(polydegs)
     ys = -img_yrange/2 : res : img_yrange/2
     zs = -2*img_zrange/4 : res : 2*img_zrange/4
-
+    len_ys = length(collect(ys))
     k_v = [p.k_x, p.k_y, k_sol]
     E = zeros(ComplexF64,(3,length(ys),length(zs)))
     for (ny,y) in enumerate(collect(ys))
+        println(ny,"/",len_ys)
         for (nz,z) in enumerate(collect(zs))
             latsum::Array{ComplexF64,2} = @distributed (+) for G in l.Gs
                 Efield_IP_summand(k_v,c_sol,G,polydegs,deg_list,l,p) * exp(1im*(k_v+G)[2]*y) * exp(1im*(k_v+G)[3]*z)
