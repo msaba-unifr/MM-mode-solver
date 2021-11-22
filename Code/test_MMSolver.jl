@@ -8,8 +8,8 @@ addprocs(4)
 @everywhere using MMSolver
 
 #For experimentation
-include("heatmap.jl") 
-#
+include("heatmap.jl")
+##
 # #Parameters set by the user (lengths in nm, angles in degrees)
 # bands_path = string(pwd(), "\\Results\\BS_noKappaNG500_TE.dat")
 # open(bands_path, "w") do io

@@ -83,4 +83,4 @@ function getE_Field(polydegs, l, p, k_sol, c_sol, img_yrange, img_zrange, res)
     return E
 end
 
-end # module
+end ## module
