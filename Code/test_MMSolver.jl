@@ -22,7 +22,7 @@ for freq in collect(375:1:1000)
     λ = 2.99792458e5/freq      #wavelength in nm
     φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
     θ = 0       #polar angle of incidence
-    NG = 500    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+    NG = 100    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
     ϵ_bg = 1 + 0im  #permittivity of background medium
     mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
     a = 30.0    #lattice constant
@@ -37,7 +37,7 @@ for freq in collect(375:1:1000)
 # 820 THz manual_ks=[0.06+0.01im,0.02+0.09im], 844 THz manual_ks=[0.1+0.05im,0.02+0.05im], 880 THz manual_ks=[0.2+0.09im,0.01+0.02im]
     if freq == 375
         #TE
-        init_k = 0+0.025im 
+        init_k = 0+0.025im
         #TM1
         # init_k = 0.012+0im
         #TM2 (from 900 THz)
