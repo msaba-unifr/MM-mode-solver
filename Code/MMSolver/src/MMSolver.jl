@@ -8,6 +8,7 @@ using Einsum
 using SpecialFunctions
 using DelimitedFiles
 using Interpolations
+using ProgressBars
 
 include("parameters.jl")
 include("functions.jl")
@@ -71,8 +72,8 @@ function getE_Field(polydegs, l, p, k_sol, c_sol, img_yrange, img_zrange, res)
     len_ys = length(collect(ys))
     k_v = [p.k_x, p.k_y, k_sol]
     E = zeros(ComplexF64,(3,length(ys),length(zs)))
-    for (ny,y) in enumerate(collect(ys))
-        println(ny,"/",len_ys)
+    for (ny,y) in ProgressBar(enumerate(collect(ys)))
+        # println(ny,"/",len_ys)
         for (nz,z) in enumerate(collect(zs))
             latsum::Array{ComplexF64,2} = @distributed (+) for G in l.Gs
                 Efield_IP_summand(k_v,c_sol,G,polydegs,deg_list,l,p) * exp(1im*(k_v+G)[2]*y) * exp(1im*(k_v+G)[3]*z)

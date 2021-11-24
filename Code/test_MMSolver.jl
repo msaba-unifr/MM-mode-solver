@@ -24,7 +24,7 @@ for freq in [800,838,900]
     λ = 2.99792458e5/freq      #wavelength in nm
     φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
     θ = 0       #polar angle of incidence
-    NG = 100    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+    NG = 50    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
     ϵ_bg = 1 + 0im  #permittivity of background medium
     mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
     a = 30.0    #lattice constant
@@ -69,15 +69,15 @@ for freq in [800,838,900]
 
     img_yrange = a
     img_zrange = 0.5*sqrt(3)*a
-    res = 0.1
+    res = 0.25
     for mode in [1,2]
         println("Starting E-Field calculation for ",freq," THz, mode ",mode," @ ",Dates.format(Dates.now(),"HH:MM"))
         field = getE_Field(polydegs, lattice, parameters, tmmodes[mode], tmvecs[:,mode], img_yrange, img_zrange, res)
         # print raw e field data
-        data_path_efield = string(pwd(),"\\Results\\E-fieldNG100res01_",freq,"-TMk",mode,".txt")
-        open(data_path_efield, "w") do io
-            writedlm(io, field)
-        end
+        # data_path_efield = string(pwd(),"\\Results\\test_",freq,"-TMk",mode,".txt")
+        # open(data_path_efield, "w") do io
+        #     writedlm(io, field)
+        # end
     end
 end
 ##############Contour-Lines###########################
