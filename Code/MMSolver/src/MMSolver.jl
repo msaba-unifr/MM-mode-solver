@@ -55,7 +55,6 @@ function get_single_mode(deg,l::Lattice,p::Parameters;manual_ks)
     if norm(manual_ks) != 0
         ks = manual_ks
     end
-    println(ks)
     #Solve NLEVP for each non filtered mode
     ksols = 0im
     csols = zeros(ComplexF64,(dim,1))
@@ -65,7 +64,7 @@ function get_single_mode(deg,l::Lattice,p::Parameters;manual_ks)
     return ksols, csols, Niters
 end
 
-function getE_Field(polydegs, l, p, k_sol, c_sol, img_yrange, img_zrange, res)
+function getE_Field(polydegs, l, p, k_sol, c_sol; img_yrange, img_zrange, res)
     Qq, Pp0, deg_list = MMSolver.getQq(polydegs)
     ys = -img_yrange/2 : res : img_yrange/2
     zs = -2*img_zrange/4 : res : 2*img_zrange/4
