@@ -7,33 +7,26 @@ addprocs(4)
 
 @everywhere using MMSolver
 
-#For experimentation
-include("heatmap.jl")
-##
-# #Parameters set by the user (lengths in nm, angles in degrees)
+#include("heatmap.jl") #For data (contour lines)
+
 # bands_path = string(pwd(), "\\Results\\BS_noKappaNG500_TE.dat")
 # open(bands_path, "w") do io
 #     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
 # end
 
 for freq in [800,838,900]
-    # println(freq)
-    λ = 2.99792458e5/freq      #wavelength in nm
-    φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
-    θ = 0       #polar angle of incidence
-    NG = 10    #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
-    ϵ_bg = 1 + 0im  #permittivity of background medium
-    mat_file = "Ag_JC_nk.txt"   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
-    a = 30.0    #lattice constant
-    A = [a/2 a; sqrt(3)*a/2 0]  #real space lattice matrix (see Lattice struct in parameters.jl)
-    Rad = 10.0  #radius of the d-sphere
-    polydegs=(2,2)
-
-    lattice,parameters = init_workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
-                    ϵ_2 = mat_file, A = A, Rad = Rad)
+    lattice,parameters = init_workspace(
+                    λ = 2.99792458e5/freq,                  #wavelength in nm
+                    φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
+                    NG = 10,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+                    ϵ_1 = 1+0im,                            #permittivity of background medium
+                    ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
+                    A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
+                    Rad = 10.0,                             #radius of the d-sphere
+                    polydegs = (2,2))                       #polynomial degree of basis functions for driving current in Ω_2
 
     ########################################################################
-    #Bandstructure-Loop
+    #Bandstructure
     # if freq == 375
     #     #TE
     #     init_k = 0+0.025im
@@ -44,7 +37,7 @@ for freq in [800,838,900]
     #     #TM2 (from 375 THz)
     #     # init_k = 0.0006435266557436068 + 0.26924804806917046im
     # end
-    # kmode,evec = get_single_mode(polydegs,lattice,parameters;manual_ks=init_k)
+    # kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
     # println("Solutions for ",freq," THz: ",kmode)
     #
     # open(bands_path, "a") do io
@@ -54,10 +47,10 @@ for freq in [800,838,900]
 
     #########################################################################
     ### Field Plot Data ###
-    local kmode,evec = get_single_mode(polydegs,lattice,parameters;manual_ks=0.045586683318467554+0.0036615182514062963im)
+    local kmode,evec = get_single_mode(lattice,parameters;manual_ks=0.045586683318467554+0.0036615182514062963im)
     local k_label = round(kmode,sigdigits=2)
     println("Starting E-Field calculation for ",freq," THz @ ",Dates.format(Dates.now(),"HH:MM"))
-    field = getE_Field(polydegs, lattice, parameters, kmode, evec, img_yrange=a, img_zrange=0.5*sqrt(3)*a, res=0.25)
+    field = getE_Field(lattice, parameters, kmode, evec, img_yrange=30.0, img_zrange=0.5*sqrt(3)*30.0, res=0.25)
     ### print raw e field data ###
     data_path_efield = string(pwd(),"\\Results\\test_",freq,k_label,".txt")
     open(data_path_efield, "w") do io

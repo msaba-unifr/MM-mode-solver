@@ -15,7 +15,7 @@ include("functions.jl")
 
 function init_workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
         ϵ_2 = "Ag_JC_nk.txt", A = [30/2 30; sqrt(3)*30/2 0],
-        Rad = 10.0, mmdim = 2)
+        Rad = 10.0, mmdim = 2, polydegs = (2,2))
 
     #Interpolating (n,k) data from txt file
     if typeof(ϵ_2) == String
@@ -27,12 +27,12 @@ function init_workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
         ϵ_2 = (itp1.(λ ./ 1000) + itp2.(λ ./ 1000) * 1im).^2
     end
 
-    return Lattice(NG,A,Rad), Parameters(λ, φ, θ, ϵ_1, ϵ_2)
+    return Lattice(NG,A,Rad), Parameters(λ, φ, θ, ϵ_1, ϵ_2, polydegs)
 end
 
-function get_polyx_mode(deg,l::Lattice,p::Parameters;manual_ks=[0im,0im])
+function get_polyx_mode(l::Lattice,p::Parameters;manual_ks=[0im,0im])
     ks = zeros(ComplexF64,(2))
-    dim = 3*((deg[1]+1)*(deg[2]+1))
+    dim = 3*((p.polydegs[1]+1)*(p.polydegs[2]+1))
     if norm(manual_ks) != 0
         ks = manual_ks
     end
@@ -41,17 +41,17 @@ function get_polyx_mode(deg,l::Lattice,p::Parameters;manual_ks=[0im,0im])
     csols = zeros(ComplexF64,(dim,2))
     Niters = zeros(Int,(2))
     for mode = 1:2
-        k_sol,Niters[mode] = polyxNewton(deg,ks[mode],l,p)
-        c_sol = qr(transpose(conj(getpolyxM(deg,k_sol,l,p))), Val(true)).Q[:,end]
+        k_sol,Niters[mode] = polyxNewton(p.polydegs,ks[mode],l,p)
+        c_sol = qr(transpose(conj(getpolyxM(p.polydegs,k_sol,l,p))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
         csols[:, mode] = c_sol
     end
     return ksols, csols, Niters
 end
 
-function get_single_mode(deg,l::Lattice,p::Parameters;manual_ks)
+function get_single_mode(l::Lattice,p::Parameters;manual_ks)
     ks = 0im
-    dim = 3*((deg[1]+1)*(deg[2]+1))
+    dim = 3*((p.polydegs[1]+1)*(p.polydegs[2]+1))
     if norm(manual_ks) != 0
         ks = manual_ks
     end
@@ -59,13 +59,13 @@ function get_single_mode(deg,l::Lattice,p::Parameters;manual_ks)
     ksols = 0im
     csols = zeros(ComplexF64,(dim,1))
     Niters = 0
-    ksols,Niters = polyxNewton(deg,ks,l,p)
-    csols = qr(transpose(conj(getpolyxM(deg,ksols,l,p))), Val(true)).Q[:,end]
+    ksols,Niters = polyxNewton(p.polydegs,ks,l,p)
+    csols = qr(transpose(conj(getpolyxM(p.polydegs,ksols,l,p))), Val(true)).Q[:,end]
     return ksols, csols, Niters
 end
 
-function getE_Field(polydegs, l, p, k_sol, c_sol; img_yrange, img_zrange, res)
-    Qq, Pp0, deg_list = MMSolver.getQq(polydegs)
+function getE_Field(l, p, k_sol, c_sol; img_yrange, img_zrange, res)
+    Qq, Pp0, deg_list = MMSolver.getQq(p.polydegs)
     ys = -img_yrange/2 : res : img_yrange/2
     zs = -2*img_zrange/4 : res : 2*img_zrange/4
     len_ys = length(collect(ys))
@@ -75,7 +75,7 @@ function getE_Field(polydegs, l, p, k_sol, c_sol; img_yrange, img_zrange, res)
         # println(ny,"/",len_ys)
         for (nz,z) in enumerate(collect(zs))
             latsum::Array{ComplexF64,2} = @distributed (+) for G in l.Gs
-                Efield_IP_summand(k_v,c_sol,G,polydegs,deg_list,l,p) * exp(1im*(k_v+G)[2]*y) * exp(1im*(k_v+G)[3]*z)
+                Efield_IP_summand(k_v,c_sol,G,p.polydegs,deg_list,l,p) * exp(1im*(k_v+G)[2]*y) * exp(1im*(k_v+G)[3]*z)
             end
             E[:,ny,nz] = latsum
         end
