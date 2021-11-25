@@ -108,7 +108,7 @@ function getQq(deg)
             elseif isodd(n)
                 Qq[i,j] = 0
             else
-                Qq[i,j] = 2*doublefactorial(m-1)*doublefactorial(n-1)/ ( (m+n+2) * 2^((m+n)/2) * factorial((m+n)/2) )
+                Qq[i,j] = 2*doublefactorial(m-1)*doublefactorial(n-1)/ ( (m+n+2) * 2^((m+n)/2) * factorial(Int((m+n)/2)))
             end
         end
     end
