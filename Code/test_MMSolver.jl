@@ -7,8 +7,9 @@ addprocs(4)
 
 @everywhere using MMSolver
 
-#include("heatmap.jl") #For data (contour lines)
+#include("heatmap.jl") #For data (e.g. contour lines)
 
+### Output ###
 bands_path = string(pwd(), "\\Results\\BS_Au_noKappaNG100_TM1.dat")
 open(bands_path, "w") do io
     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
@@ -37,12 +38,13 @@ for freq in freq_sweep
         # init_k = 0.0065145970216929855 + 0.012930216322146876im
         #TM2 (from 375 THz)
         # init_k = 0.0006435266557436068 + 0.26924804806917046im
+
+        ### Write header in output-file to record parameters ###
         open(bands_path, "a") do io
             write(io, string("NG = ",lattice.NG,", Rad = ", lattice.R,", (φ, θ) = (",parameters.azim,",", parameters.polar,"), polydegs = ",parameters.polydegs, ", material: ",parameters.material,"\n"))
         end
     end
     kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
-    # println("Solutions for ",freq," THz: ",kmode)
 
     open(bands_path, "a") do io
         writedlm(io, hcat(real.(freq), real.(kmode), imag.(kmode)))
