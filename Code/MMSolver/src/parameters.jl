@@ -21,18 +21,20 @@ struct Parameters
     eps_1::Float64
     eps_2::ComplexF64
     polydegs::Tuple{Int64, Int64}
+    material::String
     k_0::Float64
     k_x::Float64
     k_y::Float64
     k_1::ComplexF64
     k_2::ComplexF64
-    function Parameters(lambda, azim, polar, eps_1, eps_2, polydegs)
+    function Parameters(lambda, azim, polar, eps_1, eps_2, polydegs, mat_file)
         k_0 = 2*pi/lambda
         k_x = k_0 * cos(azim/180*pi) * sin(polar/180*pi)
         k_y = k_0 * sin(azim/180*pi) * sin(polar/180*pi)
         k_1 = k_0 * sqrt(eps_1)
         k_2 = k_0 * sqrt(eps_2)
-        new(lambda,azim,polar,eps_1,eps_2,polydegs,k_0,k_x,k_y,k_1,k_2)
+        material = mat_file[1:2]
+        new(lambda,azim,polar,eps_1,eps_2,polydegs,material,k_0,k_x,k_y,k_1,k_2)
     end
 end
 
