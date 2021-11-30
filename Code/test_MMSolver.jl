@@ -1,4 +1,4 @@
-using Distributed, BenchmarkTools, Plots, Plots.PlotMeasures, LinearAlgebra, DelimitedFiles, ColorSchemes, Dates
+using Distributed, BenchmarkTools, Plots, Plots.PlotMeasures, LinearAlgebra, DelimitedFiles, ColorSchemes, Dates, ProgressBars
 rmprocs(2:1000)
 addprocs(4)
 
@@ -9,53 +9,59 @@ addprocs(4)
 
 #include("heatmap.jl") #For data (contour lines)
 
-# bands_path = string(pwd(), "\\Results\\BS_noKappaNG500_TE.dat")
-# open(bands_path, "w") do io
-#     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
-# end
+bands_path = string(pwd(), "\\Results\\BS_Au_noKappaNG100_TE.dat")
+open(bands_path, "w") do io
+    write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
+end
 
-for freq in [800,838,900]
+freq_sweep = ProgressBar(375:1:1000)
+for freq in freq_sweep
     lattice,parameters = init_workspace(
                     λ = 2.99792458e5/freq,                  #wavelength in nm
                     φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
-                    NG = 10,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+                    NG = 100,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
                     ϵ_1 = 1+0im,                            #permittivity of background medium
-                    ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
+                    ϵ_2 = "Au_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
                     A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
                     Rad = 10.0,                             #radius of the d-sphere
                     polydegs = (2,2))                       #polynomial degree of basis functions for driving current in Ω_2
 
     ########################################################################
     #Bandstructure
-    # if freq == 375
-    #     #TE
-    #     init_k = 0+0.025im
-    #     #TM1
-    #     # init_k = 0.012+0im
-    #     #TM2 (from 900 THz)
-    #     # init_k = 0.0065145970216929855 + 0.012930216322146876im
-    #     #TM2 (from 375 THz)
-    #     # init_k = 0.0006435266557436068 + 0.26924804806917046im
-    # end
-    # kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
+    open(bands_path, "a") do io
+        write(io, string("NG = ",NG,", Rad = ", Rad,", (φ, θ) = (",φ, θ,"), polydegs = ",polydegs, ", material: ",ϵ_2))
+    end
+    if freq == 375
+        #TE
+        init_k = 0+0.025im
+        #TM1
+        # init_k = 0.012+0im
+        #TM2 (from 900 THz)
+        # init_k = 0.0065145970216929855 + 0.012930216322146876im
+        #TM2 (from 375 THz)
+        # init_k = 0.0006435266557436068 + 0.26924804806917046im
+    end
+    kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
     # println("Solutions for ",freq," THz: ",kmode)
-    #
-    # open(bands_path, "a") do io
-    #     writedlm(io, hcat(real.(freq), real.(kmode), imag.(kmode)))
-    # end
-    # global init_k = kmode
+
+    open(bands_path, "a") do io
+        writedlm(io, hcat(real.(freq), real.(kmode), imag.(kmode)))
+    end
+    global init_k = kmode
+
+    set_multiline_postfix(freq_sweep, "Solution for $freq THz: $kmode")
 
     #########################################################################
     ### Field Plot Data ###
-    local kmode,evec = get_single_mode(lattice,parameters;manual_ks=0.045586683318467554+0.0036615182514062963im)
-    local k_label = round(kmode,sigdigits=2)
-    println("Starting E-Field calculation for ",freq," THz @ ",Dates.format(Dates.now(),"HH:MM"))
-    field = getE_Field(lattice, parameters, kmode, evec, img_yrange=30.0, img_zrange=0.5*sqrt(3)*30.0, res=0.25)
-    ### print raw e field data ###
-    data_path_efield = string(pwd(),"\\Results\\test_",freq,k_label,".txt")
-    open(data_path_efield, "w") do io
-        writedlm(io, field)
-    end
+    # local kmode,evec = get_single_mode(lattice,parameters;manual_ks=0.045586683318467554+0.0036615182514062963im)
+    # local k_label = round(kmode,sigdigits=2)
+    # println("Starting E-Field calculation for ",freq," THz @ ",Dates.format(Dates.now(),"HH:MM"))
+    # field = getE_Field(lattice, parameters, kmode, evec, img_yrange=30.0, img_zrange=0.5*sqrt(3)*30.0, res=0.25)
+    # ### print raw e field data ###
+    # data_path_efield = string(pwd(),"\\Results\\test_",freq,k_label,".txt")
+    # open(data_path_efield, "w") do io
+    #     writedlm(io, field)
+    # end
 
 end
 
