@@ -27,7 +27,7 @@ function init_workspace(; λ = 600, φ = 45, θ = 45, NG = 10, ϵ_1 = 1 + 0im,
         ϵ_2 = (itp1.(λ ./ 1000) + itp2.(λ ./ 1000) * 1im).^2
     end
 
-    return Lattice(NG,A,Rad), Parameters(λ, φ, θ, ϵ_1, ϵ_2, polydegs)
+    return Lattice(NG,A,Rad), Parameters(λ, φ, θ, ϵ_1, ϵ_2, polydegs,mat_file)
 end
 
 function get_polyx_mode(l::Lattice,p::Parameters;manual_ks=[0im,0im])

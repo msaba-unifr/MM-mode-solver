@@ -9,7 +9,7 @@ addprocs(4)
 
 #include("heatmap.jl") #For data (contour lines)
 
-bands_path = string(pwd(), "\\Results\\BS_Au_noKappaNG100_TE.dat")
+bands_path = string(pwd(), "\\Results\\BS_R13_noKappaNG100_TM1.dat")
 open(bands_path, "w") do io
     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
 end
@@ -21,25 +21,25 @@ for freq in freq_sweep
                     φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
                     NG = 100,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
                     ϵ_1 = 1+0im,                            #permittivity of background medium
-                    ϵ_2 = "Au_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
+                    ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
                     A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
-                    Rad = 10.0,                             #radius of the d-sphere
+                    Rad = 13.0,                             #radius of the d-sphere
                     polydegs = (2,2))                       #polynomial degree of basis functions for driving current in Ω_2
 
     ########################################################################
     #Bandstructure
-    open(bands_path, "a") do io
-        write(io, string("NG = ",NG,", Rad = ", Rad,", (φ, θ) = (",φ, θ,"), polydegs = ",polydegs, ", material: ",ϵ_2))
-    end
     if freq == 375
         #TE
-        init_k = 0+0.025im
+        # init_k = 0+0.025im
         #TM1
-        # init_k = 0.012+0im
+        init_k = 0.012+0im
         #TM2 (from 900 THz)
         # init_k = 0.0065145970216929855 + 0.012930216322146876im
         #TM2 (from 375 THz)
         # init_k = 0.0006435266557436068 + 0.26924804806917046im
+        open(bands_path, "a") do io
+            write(io, string("NG = ",lattice.NG,", Rad = ", lattice.R,", (φ, θ) = (",parameters.azim,"," parameters.polar,"), polydegs = ",parameters.polydegs, ", material: ",parameters.material,"\n"))
+        end
     end
     kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
     # println("Solutions for ",freq," THz: ",kmode)
