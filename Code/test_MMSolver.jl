@@ -49,7 +49,7 @@ for freq in freq_sweep
     end
     global init_k = kmode
 
-    set_multiline_postfix(freq_sweep, "Solution for $freq THz: $kmode")
+    set_multiline_postfix(freq_sweep, "Solution for $freq THz: $kmode          ")
 
     #########################################################################
     ### Field Plot Data ###
