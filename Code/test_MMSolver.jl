@@ -10,7 +10,7 @@ addprocs(4)
 #include("heatmap.jl") #For data (e.g. contour lines)
 
 ### Output ###
-bands_path = string(pwd(), "\\Results\\BS_Au_noKappaNG100_TM1.dat")
+bands_path = string(pwd(), "\\Results\\BS_R13_noKappaNG100_TE.dat")
 open(bands_path, "w") do io
     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
 end
@@ -22,7 +22,7 @@ for freq in freq_sweep
                     φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
                     NG = 100,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
                     ϵ_1 = 1+0im,                            #permittivity of background medium
-                    ϵ_2 = "Au_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
+                    ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
                     A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
                     Rad = 13.0,                             #radius of the d-sphere
                     polydegs = (2,2))                       #polynomial degree of basis functions for driving current in Ω_2
@@ -30,14 +30,11 @@ for freq in freq_sweep
     ########################################################################
     #Bandstructure
     if freq == 375
-        #TE
-        # init_k = 0+0.025im
-        #TM1
-        init_k = 0.012+0im
-        #TM2 (from 900 THz)
-        # init_k = 0.0065145970216929855 + 0.012930216322146876im
-        #TM2 (from 375 THz)
-        # init_k = 0.0006435266557436068 + 0.26924804806917046im
+        fillf = lattice.V_2/lattice.V
+        #Maxwell-Garnett TE
+        init_k = sqrt((1-fillf)*parameters.eps_1 + fillf*parameters.eps_2)*parameters.k_0
+        #Maxwell-Garnett TM (mode 1 from 375 THz and mode 2 from 1000 THz)
+        # init_k = parameters.k_0 * sqrt(((1-fillf)*parameters.eps_1 + (1+fillf)*parameters.eps_2)/((1+fillf)*parameters.eps_1 + (1-fillf)*parameters.eps_2))
 
         ### Write header in output-file to record parameters ###
         open(bands_path, "a") do io
