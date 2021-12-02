@@ -10,7 +10,7 @@ addprocs(4)
 #include("heatmap.jl") #For data (e.g. contour lines)
 
 ### Output ###
-bands_path = string(pwd(), "\\Results\\BS_AgR8_noKappaNG100_MGTM.dat")
+bands_path = string(pwd(), "\\Results\\BS_AuR13_noKappaNG100_TM1.dat")
 open(bands_path, "w") do io
     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
 end
@@ -22,13 +22,13 @@ for freq in freq_sweep
                     φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
                     NG = 100,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
                     ϵ_1 = 1+0im,                            #permittivity of background medium
-                    ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
+                    ϵ_2 = "Au_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
                     A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
-                    Rad = 8.0,                             #radius of the d-sphere
+                    Rad = 13.0,                             #radius of the d-sphere
                     polydegs = (2,2))                       #polynomial degree of basis functions for driving current in Ω_2
 
     ########################################################################
-    Bandstructure
+    # Bandstructure
     if freq == 375
         fillf = lattice.V_2/lattice.V
         #Maxwell-Garnett TE
@@ -42,6 +42,7 @@ for freq in freq_sweep
         end
     end
     kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
+    global init_k = kmode
 
     ### MG ###
     # fillf = lattice.V_2/lattice.V
@@ -51,7 +52,6 @@ for freq in freq_sweep
         writedlm(io, hcat(real.(freq), real.(kmode), imag.(kmode)))
     end
 
-    global init_k = kmode
 
     set_multiline_postfix(freq_sweep, "Solution for $freq THz: $kmode          ")
 
