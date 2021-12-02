@@ -10,7 +10,7 @@ addprocs(4)
 #include("heatmap.jl") #For data (e.g. contour lines)
 
 ### Output ###
-bands_path = string(pwd(), "\\Results\\BS_R13_noKappaNG100_TE.dat")
+bands_path = string(pwd(), "\\Results\\BS_AgR8_noKappaNG100_MGTM.dat")
 open(bands_path, "w") do io
     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
 end
@@ -24,17 +24,17 @@ for freq in freq_sweep
                     ϵ_1 = 1+0im,                            #permittivity of background medium
                     ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
                     A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
-                    Rad = 13.0,                             #radius of the d-sphere
+                    Rad = 8.0,                             #radius of the d-sphere
                     polydegs = (2,2))                       #polynomial degree of basis functions for driving current in Ω_2
 
     ########################################################################
-    #Bandstructure
+    Bandstructure
     if freq == 375
         fillf = lattice.V_2/lattice.V
         #Maxwell-Garnett TE
-        init_k = sqrt((1-fillf)*parameters.eps_1 + fillf*parameters.eps_2)*parameters.k_0
+        # init_k = sqrt((1-fillf)*parameters.eps_1 + fillf*parameters.eps_2)*parameters.k_0
         #Maxwell-Garnett TM (mode 1 from 375 THz and mode 2 from 1000 THz)
-        # init_k = parameters.k_0 * sqrt(((1-fillf)*parameters.eps_1 + (1+fillf)*parameters.eps_2)/((1+fillf)*parameters.eps_1 + (1-fillf)*parameters.eps_2))
+        init_k = parameters.k_0 * sqrt(((1-fillf)*parameters.eps_1 + (1+fillf)*parameters.eps_2)/((1+fillf)*parameters.eps_1 + (1-fillf)*parameters.eps_2))
 
         ### Write header in output-file to record parameters ###
         open(bands_path, "a") do io
@@ -43,9 +43,14 @@ for freq in freq_sweep
     end
     kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
 
+    ### MG ###
+    # fillf = lattice.V_2/lattice.V
+    # kmode =  parameters.k_0 * sqrt(((1-fillf)*parameters.eps_1 + (1+fillf)*parameters.eps_2)/((1+fillf)*parameters.eps_1 + (1-fillf)*parameters.eps_2))
+
     open(bands_path, "a") do io
         writedlm(io, hcat(real.(freq), real.(kmode), imag.(kmode)))
     end
+
     global init_k = kmode
 
     set_multiline_postfix(freq_sweep, "Solution for $freq THz: $kmode          ")
