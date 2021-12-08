@@ -11,7 +11,7 @@ include("methods.jl")
 include("depr_vectorized.jl")
 
 #Parameters set by the user (lengths in nm, angles in degrees)
-freq = 700
+freq = 900
 λ = 2.99792458e5/freq      #wavelength in nm
 φ = 90      #azimuthal angle of incidence, do not change in 1D for fixed y-z plane of incidence
 θ = 0       #polar angle of incidence
@@ -32,13 +32,35 @@ end
 
 #Code starts here
 
-l,p = Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
+filename = "C:\\Users\\SchumacC\\Documents\\Julia_BM\\save_TM1_900.txt"
+ng_range = [100 500 1000 2000]
+for N in 1:4
+    for polyx in 2:2
+        for polyy in 2:5
+
+            NGs = ng_range[N]
+            global l,p = Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NGs, ϵ_1 = ϵ_bg,
                     ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
-println()
-t0 = time()
-println(time()-t0)
-# init_k = [ 0.0004376494248136995 + 0.019498110004211807im,   0.02883857058875105 + 0.00031740992926030585im] # for 700 THz
-# kmode = getpolyxMode(polydegs,manual_ks=init_k)[1]
+
+            println("NG: " * string(NGs) * "  px: " * string(polyx) * "  py: " * string(polyy))
+            polydegs = (polyx, polyy)
+
+            #init_k = [ 0.0004376494248136995 + 0.019498110004211807im,   0.02883857058875105 + 0.00031740992926030585im] # for 700 THz
+            init_k = [0.2536569601878529 + 0.16522139690732826im]
+            t0 = time()
+            global k_mode = getpolyxMode(polydegs,l,p,manual_ks=init_k)[1]
+            bmtime = time()-t0
+
+            format = ("NG_" * string(NGs) * "_px_" * string(polyx) * "_py_" *
+                string(polyy) * "\t" * string(k_mode[1]) * "\t" *
+                    string(k_mode[2]) * "\t" * string(bmtime) * "\n")
+
+            open(filename, "a") do file
+                write(file, format)
+            end
+        end
+    end
+end
 
 # freq_step_size = .5
 # freq_sweep = 821 : freq_step_size : 900

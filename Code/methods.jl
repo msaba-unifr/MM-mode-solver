@@ -28,7 +28,7 @@ function getpolyxMode(deg, l::Lattice, p::Parameters; manual_ks=[0im,0im])
     #Solve NLEVP for each non filtered mode
     ksols = zeros(ComplexF64,(2))
     csols = zeros(ComplexF64,(dim,2))
-    for mode = 1:2
+    for mode = 1:1 #CHANGED to 1:1 from 1:2 for BM
         k_sol = polyxNewton(deg,ks[mode], l, p)
         c_sol = qr(transpose(conj(getpolyxM(deg,k_sol, l, p))), Val(true)).Q[:,end]
         ksols[mode] = k_sol
