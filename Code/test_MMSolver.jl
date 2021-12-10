@@ -10,67 +10,71 @@ addprocs(4)
 #include("heatmap.jl") #For data (e.g. contour lines)
 
 # rads = ProgressBar(9:-0.01:8.5)
-# freq_sweep = ProgressBar(850:0.1:852)
-# for freq in freq_sweep
-### Output ###
-    # bands_path = string(pwd(), "\\Results\\Ag_Rad9to85_TM2_",freq,".dat")
-    # open(bands_path, "w") do io
-    #     write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
-    # end
-freq = 900
-lattice,parameters = init_workspace(
+bands_path = string(pwd(), "\\Results\\BS_pd43_TM1.dat")
+open(bands_path, "w") do io
+    write(io, string(now(),"\nFrequency Re(k) Im(k)\n"))
+end
+freq_sweep = ProgressBar(375:1:1000)
+for freq in freq_sweep
+        lattice,parameters = init_workspace(
                         λ = 2.99792458e5/freq,                  #wavelength in nm
                         φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
-                        NG = 1600,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+                        NG = 800,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
                         ϵ_1 = 1+0im,                            #permittivity of background medium
                         ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
                         A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
                         Rad = 10.0,                             #radius of the d-sphere
-                        polydegs = (4,4))                       #polynomial degree of basis functions for driving current in Ω_2
-### NG=800, polydegs=(4,3)
+                        polydegs = (4,3))                       #polynomial degree of basis functions for driving current in Ω_2
+
         ########################################################################
         # Bandstructure
-            ### needs if-statement for init_k
-            ### Write header in output-file to record parameters ###
-        #     open(bands_path, "a") do io
-        #         write(io, string("NG = ",lattice.NG,", Rad = ", lattice.R,", (φ, θ) = (",parameters.azim,",", parameters.polar,"), polydegs = ",parameters.polydegs, ", material: ",parameters.material,"\n"))
-        #     end
+        if freq == 375
+                fillf = lattice.V_2/lattice.V
+                init_k =  parameters.k_0 * sqrt(((1-fillf)*parameters.eps_1 + (1+fillf)*parameters.eps_2)/((1+fillf)*parameters.eps_1 + (1-fillf)*parameters.eps_2))
 
-init_k = 4*pi/sqrt(3)/30.0-0.04107536719185247+0.1548678159144141im
-kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
-        # global init_k = kmode
+            ### Write header in output-file to record parameters ###
+                open(bands_path, "a") do io
+                write(io, string("NG = ",lattice.NG,", Rad = ", lattice.R,", (φ, θ) = (",parameters.azim,",", parameters.polar,"), polydegs = ",parameters.polydegs, ", material: ",parameters.material,"\n"))
+                end
+        end
+
+        local kmode,evec = get_single_mode(lattice,parameters;manual_ks=init_k)
+        global init_k = kmode
 
         ### MG ###
         # fillf = lattice.V_2/lattice.V
         # kmode =  parameters.k_0 * sqrt(((1-fillf)*parameters.eps_1 + (1+fillf)*parameters.eps_2)/((1+fillf)*parameters.eps_1 + (1-fillf)*parameters.eps_2))
 
-        # open(bands_path, "a") do io
-        #     writedlm(io, hcat(real.(radius), real.(kmode), imag.(kmode)))
-        # end
+        open(bands_path, "a") do io
+            writedlm(io, hcat(real.(freq), real.(kmode), imag.(kmode)))
+        end
+        open(string(pwd(), "\\Results\\Evecs\\evec_",freq,"THz_NG",lattice.NG,"_pd",parameters.polydegs,".dat"), "w") do io
+            writedlm(io, evec)
+        end
 
 
-        # set_multiline_postfix(rads, "Solution for $freq THz: $kmode          ")
-
+        set_multiline_postfix(freq_sweep, "Solution for $freq THz: $kmode          ")
+end
         #########################################################################
 ### Field Plot Data ###
 # kmode,evec = get_single_mode(lattice,parameters;manual_ks=0.045586683318467554+0.0036615182514062963im)
 # local k_label = round(kmode,sigdigits=2)
-lattice,parameters = init_workspace(
-                        λ = 2.99792458e5/freq,                  #wavelength in nm
-                        φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
-                        NG = 50,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
-                        ϵ_1 = 1+0im,                            #permittivity of background medium
-                        ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
-                        A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
-                        Rad = 10.0,                             #radius of the d-sphere
-                        polydegs = (4,4))                       #polynomial degree of basis functions for driving current in Ω_2
-println("Starting E-Field calculation for ",freq," THz @ ",Dates.format(Dates.now(),"HH:MM"))
-field = getE_Field(lattice, parameters, kmode, evec, img_yrange=30.0, img_zrange=0.5*sqrt(3)*30.0, res=0.25)
-### print raw e field data ###
-data_path_efield = string(pwd(),"\\Results\\E-Field_pd44_",freq,"_TM1.txt")
-open(data_path_efield, "w") do io
-    writedlm(io, field)
-end
+# lattice,parameters = init_workspace(
+#                         λ = 2.99792458e5/freq,                  #wavelength in nm
+#                         φ = 90, θ = 0,                          #azimuthal and polar angle of incidence
+#                         NG = 50,                                #reciprocal lattice cut-off (see Lattice struct in parameters.jl)
+#                         ϵ_1 = 1+0im,                            #permittivity of background medium
+#                         ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
+#                         A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
+#                         Rad = 10.0,                             #radius of the d-sphere
+#                         polydegs = (4,4))                       #polynomial degree of basis functions for driving current in Ω_2
+# println("Starting E-Field calculation for ",freq," THz @ ",Dates.format(Dates.now(),"HH:MM"))
+# field = getE_Field(lattice, parameters, kmode, evec, img_yrange=30.0, img_zrange=0.5*sqrt(3)*30.0, res=0.25)
+# ### print raw e field data ###
+# data_path_efield = string(pwd(),"\\Results\\E-Field_pd44_",freq,"_TM1.txt")
+# open(data_path_efield, "w") do io
+#     writedlm(io, field)
+# end
 
 
 ###############################################################################
