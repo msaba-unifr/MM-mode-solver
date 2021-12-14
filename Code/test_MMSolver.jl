@@ -51,7 +51,7 @@ freqs = [400,838,900]
 kmodes = [0.013270878853772414+7.042605190951711e-6im 0.0005606886180370765+0.2612128351596212im;0im 0im;
         -0.04107536719185247+0.1548678159144141im 0.006578321824730451+0.013109898776823451im]
 
-freq = 400
+freq = 900
 mode = 2
 kmode = kmodes[findfirst(isequal(freq),freqs),mode]
 evec = readdlm(string(pwd(),"\\Results\\evec_NG1600_",freq,"THz_TM",mode,".txt"),'\n',ComplexF64)
@@ -76,6 +76,7 @@ plt = heatmap(range(0,stop=2*pi,length=Nth),range(0,stop=lat.R,length=Nr),
     Cabs,aspect_ratio=:equal,projection=:polar,color=:hot,
         interpolate=true,right_margin=5mm)
 
+savefig(string(pwd(),"\\Results\\Current_NG1600pd",param.polydegs,"_TMk",mode,"_",freq,".png"))
 ### print raw plot data ###
 # data_path_plot = string(pwd(),"\\Results\\Current-pol_pd44_",freq,"_TM",mode,".txt")
 # open(data_path_plot, "w") do io
