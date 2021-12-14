@@ -1,6 +1,6 @@
 module MMSolver
 
-export init_workspace, get_polyx_mode, getE_Field, get_single_mode
+export init_workspace, get_polyx_mode, getE_Field, get_single_mode, getC_current
 
 using Distributed
 using LinearAlgebra
@@ -68,11 +68,9 @@ function getE_Field(l, p, k_sol, c_sol; img_yrange, img_zrange, res)
     Qq, Pp0, deg_list = MMSolver.getQq(p.polydegs)
     ys = -img_yrange/2 : res : img_yrange/2
     zs = -2*img_zrange/4 : res : 2*img_zrange/4
-    len_ys = length(collect(ys))
     k_v = [p.k_x, p.k_y, k_sol]
     E = zeros(ComplexF64,(3,length(ys),length(zs)))
     for (ny,y) in ProgressBar(enumerate(collect(ys)))
-        # println(ny,"/",len_ys)
         for (nz,z) in enumerate(collect(zs))
             latsum::Array{ComplexF64,2} = @distributed (+) for G in l.Gs
                 Efield_IP_summand(k_v,c_sol,G,p.polydegs,deg_list,l,p) * exp(1im*(k_v+G)[2]*y) * exp(1im*(k_v+G)[3]*z)
@@ -81,6 +79,25 @@ function getE_Field(l, p, k_sol, c_sol; img_yrange, img_zrange, res)
         end
     end
     return E
+end
+
+function getC_current(l, p, k_sol, c_sol; Nth, Nr)
+    Qq, Pp0, deg_list = getQq(p.polydegs)
+    ts = range(0,stop=2*pi,length=Nth)
+    rs = range(0,stop=l.R,length=Nr)
+    k_v = [p.k_x, p.k_y, k_sol]
+    C = zeros(ComplexF64,(3,Nr,Nth))
+    Qqlen = length(c_sol)÷3
+    for (nr,r) in ProgressBar(enumerate(collect(rs)))
+        for (nt,t) in enumerate(collect(ts))
+            y = r*cos(t)
+            z = r*sin(t)
+            for i in 1:Qqlen
+                C[:,nr,nt] += c_sol[3*i-2:3*i]*y^deg_list[1,i]*z^deg_list[2,i]/l.R^(deg_list[1,i]+deg_list[2,i]) * exp(1im*k_v[3]*z)
+            end
+        end
+    end
+    return C
 end
 
 end ## module
