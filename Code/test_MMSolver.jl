@@ -51,7 +51,7 @@ freqs = [400,838,900]
 kmodes = [0.013270878853772414+7.042605190951711e-6im 0.0005606886180370765+0.2612128351596212im;0im 0im;
         -0.04107536719185247+0.1548678159144141im 0.006578321824730451+0.013109898776823451im]
 
-freq = 900
+freq = 400
 mode = 2
 kmode = kmodes[findfirst(isequal(freq),freqs),mode]
 evec = readdlm(string(pwd(),"\\Results\\evec_NG1600_",freq,"THz_TM",mode,".txt"),'\n',ComplexF64)
@@ -69,12 +69,15 @@ lat,param = init_workspace(
 println("Starting Current calculation for ",freq," THz @ ",Dates.format(Dates.now(),"HH:MM"))
 
 Nth = 201
-Nr = 51
+Nr = 101
 C = MMSolver.getC_current(lat,param,kmode,evec; Nth=Nth, Nr=Nr)
 Cabs = sqrt.(abs.(C[1,:,:]).^2 + abs.(C[2,:,:]).^2 + abs.(C[3,:,:]).^2)
-plt = heatmap(range(0,stop=2*pi,length=Nth),range(0,stop=lat.R,length=Nr),
-    Cabs,aspect_ratio=:equal,projection=:polar,color=:hot,
-        interpolate=true,right_margin=5mm)
+Cmax = maximum(Cabs)
+heatmap(range(0,stop=2*pi,length=Nth),range(0,stop=Rad,length=Nr),
+            Cabs/Cmax,aspect_ratio=:equal,projection=:polar,color=:hot,
+                interpolate=true,right_margin=5mm,bottom_margin=5mm,
+                axis=false,yticks=[],yrange=(0,10.1))
+plot!(t->t,t->10,0,2π,color=:silver,legend=false,linewidth=2)
 
 savefig(string(pwd(),"\\Results\\Current_NG1600pd",param.polydegs,"_TMk",mode,"_",freq,".png"))
 ### print raw plot data ###
