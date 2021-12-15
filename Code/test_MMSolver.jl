@@ -52,7 +52,7 @@ kmodes = [0.013270878853772414+7.042605190951711e-6im 0.0005606886180370765+0.26
         -0.04107536719185247+0.1548678159144141im 0.006578321824730451+0.013109898776823451im]
 
 freq = 400
-mode = 2
+mode = 1
 kmode = kmodes[findfirst(isequal(freq),freqs),mode]
 evec = readdlm(string(pwd(),"\\Results\\evec_NG1600_",freq,"THz_TM",mode,".txt"),'\n',ComplexF64)
 
@@ -64,7 +64,7 @@ lat,param = init_workspace(
                         ϵ_2 = "Ag_JC_nk.txt",                   #file storing permittivities of medium in sphere. Format as in refractiveindex.info files
                         A = [30.0/2 30.0; sqrt(3)*30.0/2 0],    #real space lattice matrix (see Lattice struct in parameters.jl)
                         Rad = 10.0,                             #radius of the d-sphere
-                        polydegs = (4,4))                       #polynomial degree of basis functions for driving current in Ω_2
+                        polydegs = (2,2))                       #polynomial degree of basis functions for driving current in Ω_2
 
 println("Starting Current calculation for ",freq," THz @ ",Dates.format(Dates.now(),"HH:MM"))
 
@@ -73,11 +73,33 @@ Nr = 101
 C = MMSolver.getC_current(lat,param,kmode,evec; Nth=Nth, Nr=Nr)
 Cabs = sqrt.(abs.(C[1,:,:]).^2 + abs.(C[2,:,:]).^2 + abs.(C[3,:,:]).^2)
 Cmax = maximum(Cabs)
-heatmap(range(0,stop=2*pi,length=Nth),range(0,stop=Rad,length=Nr),
+ths = range(0,stop=2*pi,length=Nth)
+rs  = range(0,stop=Rad,length=Nr)
+heatmap(ths,rs,
             Cabs/Cmax,aspect_ratio=:equal,projection=:polar,color=:hot,
                 interpolate=true,right_margin=5mm,bottom_margin=5mm,
                 axis=false,yticks=[],yrange=(0,10.1))
-plot!(t->t,t->10,0,2π,color=:silver,legend=false,linewidth=2)
+plot!(t->t,t->10,0,2π,color=:silver,legend=false,linewidth=4)
+
+nrs  = [1,20,35,47,56,65,75,85]
+nths = 1:10:200
+nrs  = [nr  for nr in nrs for nth in nths]
+nths = [nth for nr in nrs for nth in nths]
+Cth = zeros(length(nrs))
+Cr  = zeros(length(nrs))
+for nn in 1:length(nrs)
+    nr = nrs[nn]
+    nth= nths[nn]
+    r = rs[nr]
+    th= ths[nth]
+    Cy = real(C[2,nr,nth])/Cabs[nr,nth]
+    Cz = real(C[3,nr,nth])/Cabs[nr,nth]
+    Cth[nn] = atan(Cz+r*sin(th),Cy+r*cos(th)) - th
+    Cr[nn]  = sqrt((Cy+r*cos(th))^2 + (Cz+r*sin(th))^2) - r
+end
+us = [1,1,1,1]
+vs = [0,0,0,0]
+quiver!(ths[nths],rs[nrs],quiver=(Cth,Cr),color=:silver,linewidth=0.4)
 
 savefig(string(pwd(),"\\Results\\Current_NG1600pd",param.polydegs,"_TMk",mode,"_",freq,".png"))
 ### print raw plot data ###

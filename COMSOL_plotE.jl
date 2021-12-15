@@ -30,5 +30,7 @@ heatmap(range(0,stop=2*pi,length=Nth),range(0,stop=Rad,length=Nr),
     normE,aspect_ratio=:equal,projection=:polar,color=:hot,
         interpolate=true,right_margin=5mm,bottom_margin=5mm,
         axis=false,yticks=[],yrange=(0,10.1))
-plot!(t->t,t->10,0,2π,color=:silver,legend=false,linewidth=2)
-savefig(string(pwd(),"\\Results\\COMSOL_",mode,"_",freq,"THz.png"))
+plot!(t->t,t->10,0,2π,color=:silver,legend=false,linewidth=4)
+
+
+#savefig(string(pwd(),"\\Results\\COMSOL_",mode,"_",freq,"THz.png"))
