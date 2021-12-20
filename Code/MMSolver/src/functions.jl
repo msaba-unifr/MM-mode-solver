@@ -258,3 +258,12 @@ Qq, Pp0, deg_list = getQq(deg)
     end
     return 2*l.V_2/l.V * sum(summands,dims=1)
 end
+
+function getC_current_pos(l,p,c_sol,deg_list,k_v,y,z)
+    C = zeros(ComplexF64,(3))
+    Qqlen = length(c_sol)÷3
+    for i in 1:Qqlen
+        C += c_sol[3*i-2:3*i]*y^deg_list[1,i]*z^deg_list[2,i]/l.R^(deg_list[1,i]+deg_list[2,i]) * exp(1im*k_v[3]*z)
+    end
+    return C
+end

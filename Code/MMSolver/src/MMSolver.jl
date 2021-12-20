@@ -1,6 +1,7 @@
 module MMSolver
 
-export init_workspace, get_polyx_mode, getE_Field, get_single_mode, getC_current
+export init_workspace, get_polyx_mode, getE_Field, get_single_mode,
+    getC_current_grid
 
 using Distributed
 using LinearAlgebra
@@ -49,17 +50,11 @@ function get_polyx_mode(l::Lattice,p::Parameters;manual_ks=[0im,0im])
     return ksols, csols, Niters
 end
 
-function get_single_mode(l::Lattice,p::Parameters;manual_ks)
-    ks = 0im
+function get_single_mode(l::Lattice,p::Parameters;kinit)
     dim = 3*((p.polydegs[1]+1)*(p.polydegs[2]+1))
-    if norm(manual_ks) != 0
-        ks = manual_ks
-    end
     #Solve NLEVP for each non filtered mode
-    ksols = 0im
     csols = zeros(ComplexF64,(dim,1))
-    Niters = 0
-    ksols,Niters = polyxNewton(p.polydegs,ks,l,p)
+    ksols,Niters = polyxNewton(p.polydegs,kinit,l,p)
     csols = qr(transpose(conj(getpolyxM(p.polydegs,ksols,l,p))), Val(true)).Q[:,end]
     return ksols, csols, Niters
 end
@@ -67,7 +62,7 @@ end
 function getE_Field(l, p, k_sol, c_sol; img_yrange, img_zrange, res)
     Qq, Pp0, deg_list = MMSolver.getQq(p.polydegs)
     ys = -img_yrange/2 : res : img_yrange/2
-    zs = -2*img_zrange/4 : res : 2*img_zrange/4
+    zs = -img_zrange/2 : res : img_zrange/2
     k_v = [p.k_x, p.k_y, k_sol]
     E = zeros(ComplexF64,(3,length(ys),length(zs)))
     for (ny,y) in ProgressBar(enumerate(collect(ys)))
@@ -81,23 +76,21 @@ function getE_Field(l, p, k_sol, c_sol; img_yrange, img_zrange, res)
     return E
 end
 
-function getC_current(l, p, k_sol, c_sol; Nth, Nr)
+function getC_current_grid(l, p, k_sol, c_sol; Nth, Nr)
     Qq, Pp0, deg_list = getQq(p.polydegs)
     ts = range(0,stop=2*pi,length=Nth)
     rs = range(0,stop=l.R,length=Nr)
     k_v = [p.k_x, p.k_y, k_sol]
     C = zeros(ComplexF64,(3,Nr,Nth))
-    Qqlen = length(c_sol)÷3
     for (nr,r) in ProgressBar(enumerate(collect(rs)))
         for (nt,t) in enumerate(collect(ts))
             y = r*cos(t)
             z = r*sin(t)
-            for i in 1:Qqlen
-                C[:,nr,nt] += c_sol[3*i-2:3*i]*y^deg_list[1,i]*z^deg_list[2,i]/l.R^(deg_list[1,i]+deg_list[2,i]) * exp(1im*k_v[3]*z)
-            end
+            C[:,nr,nt] = getC_current_pos(l,p,c_sol,deg_list,k_v,y,z)
         end
     end
     return C
 end
+
 
 end ## module
