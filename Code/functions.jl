@@ -31,23 +31,10 @@ function BessQnoDC(n,x)
     end
 end
 
-
-function getGspace(mmdim)
-    space_ax = -l.NG:1.0:l.NG
-    if mmdim == 1
-        Gs = [l.B*[h,k,n] for h in space_ax, k in 0:0, n in 0:0]
-        Gs = [Gs[h,k,n][i] for i in 1:3, h in 1:2*l.NG+1, k in 1:1, n in 1:1]
-    elseif mmdim == 2
-        Gs = [l.B*[h,k,n] for h in space_ax, k in space_ax, n in 0:0]
-        Gs = [Gs[h,k,n][i] for i in 1:3, h in 1:2*l.NG+1, k in 1:2*l.NG+1, n in 1:1]
-    end
-    return Gs
-end
-
 function getHinv(G, k_v, k_1)::Array{Complex{Float64},2}
     #Creating 𝓗⁻¹#
     # Adding vectors
-    k_v = reshape(k_v, (3,1))
+    # k_v = reshape(k_v, (3,1))
     kG = k_v + G
     #Creating TensorProduct
     outM = kG * transpose(kG)
@@ -81,7 +68,7 @@ function polyxDiskIP(G ,degmn)
         return 0.0 + 0.0im
     end
     uuu = abs_G*l.R
-    Summands = zeros((floor(Int,m/2)+1,floor(Int,n/2)+1))
+    Summands = zeros(ComplexF64,(floor(Int,m/2)+1,floor(Int,n/2)+1))
     uuuy = G[2]*l.R
     uuuz = G[3]*l.R
     cαm = RecurCoef(degmn)
@@ -183,36 +170,39 @@ function getQEPpolyx(deg, H_inv, k_1, k_2, k_x, k_y, V_2, V)
     return eigen(QEVP_LH,QEVP_RH)
 end
 
-function getpolyxM(deg, λ_value, NG=l.NG, B=l.B, eps = 1.0e-8)::Array{Complex{Float64},2}
+function summand(G::Array{Float64,1},deg,deg_list,k_v,l::Lattice,p::Parameters)
+    H_inv = getHinv(G, k_v, p.k_1)
+    kG = k_v + G
+    IPvec = getIPvec(kG, deg, deg_list)
+    return kron((IPvec * IPvec'), H_inv)
+end
 
-    k_v = [p.k_x ; p.k_y; λ_value]
+function getpolyxM(deg, λ_value, l::Lattice, p::Parameters)
+
+    k_v = reshape([p.k_x ; p.k_y; λ_value], (3,1))
     Qq, Pp0, deg_list = getQq(deg)
     latsum = zeros(ComplexF64, (3*(deg[1]+1)*(deg[2]+1),3*(deg[1]+1)*(deg[2]+1)))
-    for k in -NG:NG, n in -NG:NG, m in 0:0
-        G = B * [k, n, m]
+    for G in l.Gs
         H_inv = getHinv(G, k_v, p.k_1)
-        if k == 0 && n == 0
-            IPvec = Qq[1,:]
-        else
-            IPvec = getIPvec(G, deg, deg_list)
-        end
+        kG = k_v + G
+        IPvec = getIPvec(kG, deg, deg_list)
         latsum += kron((IPvec * IPvec'), H_inv)
         # println("k= ", k, "n= ", n , "  ||  ", maximum(abs.(kron((IPvec * conj(IPvec)'), H_inv))))
     end
     return kron(Qq,one(ones(3,3))) - ((p.k_1^2-p.k_2^2) * l.V_2 / l.V) * latsum
 end
 
-function getpolyxMder(deg,λ_value, eps = 1.0e-8)::Complex{Float64}
+function getpolyxMder(deg,λ_value, l::Lattice, p::Parameters, eps = 1.0e-8)::Complex{Float64}
 
-    return (det(getpolyxM(deg,λ_value+eps)) -
-            det(getpolyxM(deg,λ_value-eps)))/(2*eps)
+    return (det(getpolyxM(deg,λ_value+eps, l, p)) -
+            det(getpolyxM(deg,λ_value-eps, l, p)))/(2*eps)
 end
 
-function polyxNewton(deg,kinit, maxiter=1000, tol2=5e-9)
+function polyxNewton(deg,kinit, l::Lattice, p::Parameters, maxiter=1000, tol2=5e-9)
 
     for nn in 1:maxiter
-        phik = det(getpolyxM(deg,kinit))
-        knew = kinit - phik / getpolyxMder(deg,kinit)
+        phik = det(getpolyxM(deg,kinit, l, p))
+        knew = kinit - phik / getpolyxMder(deg,kinit, l, p)
         delk = abs(1 - knew / kinit)
         if delk < tol2
             global knew = knew
@@ -228,10 +218,10 @@ function doublefactorial(n::Integer)
     if n <= 0
         return 1
     elseif isodd(n)
-        k = (n+1)/2
-        return factorial(2*k) / 2^k / factorial(k)
+        k = (n+1) ÷ 2
+        return factorial(2*k) ÷ 2^k ÷ factorial(k)
     else
-        k = n/2
+        k = n ÷ 2
         return 2^k * factorial(k)
     end
 end

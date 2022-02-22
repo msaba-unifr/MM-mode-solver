@@ -32,27 +32,41 @@ end
 
 #Code starts here
 
-Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
-    ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
+l,p = Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
+                    ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
+println()
+t0 = time()
+println(time()-t0)
+# init_k = [ 0.0004376494248136995 + 0.019498110004211807im,   0.02883857058875105 + 0.00031740992926030585im] # for 700 THz
+# kmode = getpolyxMode(polydegs,manual_ks=init_k)[1]
 
-freq_sweep = 700 : 2 : 900
-speed_of_light = 2.99792458e5
-bands_path = string(pwd(), "\\Results\\BS_new.dat")
-open(bands_path, "a") do io
-    write(io, string(now(),"\nFrequency Re(k1) Im(k1) Re(k2) Im(k2)\n"))
-end
-sorttol = 1e-2
-init_k = [ 0.0004376494248136995 + 0.019498110004211807im,   0.02883857058875105 + 0.00031740992926030585im]
-t1=time()
-for freq in collect(freq_sweep)
-    λ = speed_of_light / freq
-    Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
-        ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
-    println(p.lambda)
-    kmode = getpolyxMode(polydegs,manual_ks=init_k)[1]
-    open(bands_path, "a") do io
-        writedlm(io, hcat(real.(freq), real.(kmode[1]), imag.(kmode[1]), real.(kmode[2]), imag(kmode[2])))
-    end
-    global init_k = kmode
-    @printf("Runtime for %f nm was %f minutes, finished @ %s\n",λ,(time()-t1)/60,Dates.format(now(), "HHhMM"));global t1=time()
-end
+# freq_step_size = .5
+# freq_sweep = 821 : freq_step_size : 900
+# speed_of_light = 2.99792458e5
+# bands_path = string(pwd(), "\\Results\\BS_wKappa_interpol-test.dat")
+# open(bands_path, "a") do io
+#     write(io, string(now(),"\nFrequency Re(k1) Im(k1) Re(k2) Im(k2)\n"))
+# end
+# sorttol = 1e-2
+# manual_init_k = [0.0012812934048370053 + 0.011393471563159698im, 0.06442695395385803 + 0.017188413925628337im]
+# kmodes = zeros(ComplexF64,(size(freq_sweep,1),2))
+# t1=time()
+# for (fr, freq) in enumerate(collect(freq_sweep))
+#     λ = speed_of_light / freq
+#     Init_Workspace(λ = λ, φ = φ, θ = θ, NG = NG, ϵ_1 = ϵ_bg,
+#         ϵ_2 = mat_file, A = A, Rad = Rad, mmdim = mmdim)
+#     println(p.lambda)
+#     if fr == 1
+#         local init_k = manual_init_k
+#     elseif fr == 2
+#         local init_k = kmodes[fr-1,:]
+#     else
+#         local init_k = 2*kmodes[fr-1,:] - kmodes[fr-2,:]
+#     end
+#     println("init_k = ",init_k)
+#     kmodes[fr,:] = getpolyxMode(polydegs,manual_ks=init_k)[1]
+#     open(bands_path, "a") do io
+#         writedlm(io, hcat(real.(freq), real.(kmodes[fr,1]), imag.(kmodes[fr,1]), real.(kmodes[fr,2]), imag(kmodes[fr,2])))
+#     end
+#     @printf("Runtime for %f nm was %f minutes, finished @ %s\n",λ,(time()-t1)/60,Dates.format(now(), "HHhMM"));global t1=time()
+# end
